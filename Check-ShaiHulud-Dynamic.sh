@@ -5,6 +5,8 @@ ROOTS=("$HOME")
 SCAN_MODE="quick"
 REPORT_PATH="./ShaiHulud-Scan-Report.txt"
 
+DO_BANNER=Y
+JUST_FILES=
 # Wide ASCII Art Banner (for terminals >= 180 chars)
 BANNER_WIDE='
      .:--.------:--:--:--:---:--:--:--:---:--:--:=-:------.--:--:---:--:--:------:--.--:--:---:--:--:------:--:--:------:--:--:------:--:--:---:--:--.=--------:=-:--:---:=-:--..
@@ -74,7 +76,7 @@ BANNER_WIDE='
 ###################*******************#####%%%%%%%%%%######%%%%%%%#####**+==========+====+***********************####**++=+#####********************###############################*
 #****###################*******#****#*####%%%%%%%%%%%#############****++==============-==+****###*#*#*######**#*****##****####*******************##################################*
 
-                                          Supply Chain Malware Detection Scanner for Windows
+                                          Supply Chain Malware Detection Scanner for Real Computers
 '
 
 # Narrow ASCII Art Banner (for terminals < 180 chars)
@@ -126,6 +128,8 @@ print_banner() {
 usage() {
   cat <<'EOF'
 Usage: Check-ShaiHulud-Dynamic.sh [options]
+  -B                          DO NOT print the banner
+  -F                          ONLY scan roots files (inores ~/.npm, git etc)
   -r, --roots "path1,path2"   Comma-separated root paths to scan (default: $HOME)
   -m, --mode  quick|full      Scan mode (default: quick)
   -o, --report FILE           Report output path (default: ./ShaiHulud-Scan-Report.txt)
@@ -135,6 +139,8 @@ EOF
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
+    -B) DO_BANNER=; shift;;
+    -F) JUST_FILES=Y; shift;;
     -r|--roots) IFS=',' read -r -a ROOTS <<<"$2"; shift 2;;
     -m|--mode) SCAN_MODE="$(echo "$2" | tr '[:upper:]' '[:lower:]')"; shift 2;;
     -o|--report) REPORT_PATH="$2"; shift 2;;
@@ -623,13 +629,15 @@ main() {
   local start_ts
   start_ts=$(date +%s)
 
-  print_banner
-  echo ""
-  echo "============================================"
-  echo " Shai-Hulud Dynamic Detection (Bash)"
-  echo "============================================"
-  echo "[*] Scan Mode: ${SCAN_MODE^^}"
-  echo ""
+  if [[ -n ${DO_BANNER} ]]; then
+    print_banner
+    echo ""
+    echo "============================================"
+    echo " Shai-Hulud Dynamic Detection (Bash)"
+    echo "============================================"
+    echo "[*] Scan Mode: ${SCAN_MODE^^}"
+    echo ""
+  fi
 
   log_section "Loading compromised package lists"
   load_compromised_packages
@@ -656,7 +664,7 @@ main() {
     echo "[-] Skipping node_modules package scan (no packages or dirs)."
   fi
 
-  if [[ "$SCAN_MODE" == "full" ]]; then
+  if [[ "$SCAN_MODE" == "full" && -z "${JUST_FILES}" ]]; then
     log_section "Scanning npm cache for compromised packages"
     if [[ -n "$npm_cache" ]]; then
       scan_npm_cache "$npm_cache"
@@ -670,37 +678,39 @@ main() {
   log_section "Scanning for known Shai-Hulud artefact files"
   scan_malicious_files "$SCAN_MODE" "${ROOTS[@]}"
 
-  log_section "Scanning for suspicious git branches and remotes"
-  scan_git "$SCAN_MODE" "${ROOTS[@]}"
-
-  log_section "Scanning GitHub Actions workflows"
-  scan_workflows "${ROOTS[@]}"
-
-  log_section "Checking cloud credential files"
-  scan_credentials "$SCAN_MODE" "${ROOTS[@]}"
-
-  if [[ "$SCAN_MODE" == "full" ]]; then
-    log_section "Checking for self-hosted runners"
-    scan_runners "${ROOTS[@]}"
-  else
-    echo "[Quick] Skipping self-hosted runner scan (use --mode full)"
-  fi
-
-  log_section "Scanning postinstall hooks"
-  scan_hooks "$SCAN_MODE" "${ROOTS[@]}"
-
-  log_section "Hash-based malware detection"
-  scan_hashes "$SCAN_MODE" "${ROOTS[@]}"
-
-  if [[ "$SCAN_MODE" == "full" ]]; then
-    log_section "Checking for migration suffix attack"
-    scan_migration_suffix "${ROOTS[@]}"
-  else
-    echo "[Quick] Skipping migration suffix scan (use --mode full)"
-  fi
-
   log_section "Checking for TruffleHog installation"
   scan_trufflehog "$SCAN_MODE" "${ROOTS[@]}"
+
+  if [[ -z ${JUST_FILES} ]]; then
+    log_section "Scanning for suspicious git branches and remotes"
+    scan_git "$SCAN_MODE" "${ROOTS[@]}"
+
+    log_section "Scanning GitHub Actions workflows"
+    scan_workflows "${ROOTS[@]}"
+
+    log_section "Checking cloud credential files"
+    scan_credentials "$SCAN_MODE" "${ROOTS[@]}"
+
+    if [[ "$SCAN_MODE" == "full" ]]; then
+      log_section "Checking for self-hosted runners"
+      scan_runners "${ROOTS[@]}"
+    else
+      echo "[Quick] Skipping self-hosted runner scan (use --mode full)"
+    fi
+
+    log_section "Scanning postinstall hooks"
+    scan_hooks "$SCAN_MODE" "${ROOTS[@]}"
+
+    log_section "Hash-based malware detection"
+    scan_hashes "$SCAN_MODE" "${ROOTS[@]}"
+
+    if [[ "$SCAN_MODE" == "full" ]]; then
+      log_section "Checking for migration suffix attack"
+      scan_migration_suffix "${ROOTS[@]}"
+    else
+      echo "[Quick] Skipping migration suffix scan (use --mode full)"
+    fi
+  fi
 
   if [[ "$SCAN_MODE" == "full" ]]; then
     log_section "Scanning for suspicious env+exfil patterns"

@@ -47,6 +47,14 @@ The scanner performs the following checks:
 - Python 3 (for JSON parsing in postinstall hook analysis)
 - Standard Unix utilities: `find`, `sha256sum`, `sha1sum`, `grep`
 
+### S3 Scanning (Linux)
+- Requires `mc` and `jq` to be installed
+- Downloads all S3 assets to a folder in `/tmp`
+- Then calls `Check-ShaiHulud-Dynamic.sh` the scan the download location
+- Example `./s3-bucket-scanner.sh -a MY_KEY -s MY_SECRET -h MY.MINIO.INSTANCE -b BUCKET --path MY/PATH`
+- Run `./s3-bucket-scanner.sh -h` for usage
+- Requires `Check-ShaiHulud-Dynamic.sh` to be present in the same folder
+
 ## Installation
 
 Clone or download the repository to your system:
