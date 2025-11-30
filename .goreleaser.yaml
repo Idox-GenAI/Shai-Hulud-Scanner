@@ -76,7 +76,7 @@ nfpms:
 
 release:
   github:
-    owner: L1ghtn1ng
+    owner: Idox-GenAI
     name: shai-hulud-scanner
   draft: true
   prerelease: auto
