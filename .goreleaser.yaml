@@ -63,7 +63,7 @@ nfpms:
 
 release:
   github:
-    owner: L1ghtning
+    owner: L1ghtn1ng
     name: shai-hulud-scanner
   draft: true
   prerelease: auto
