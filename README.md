@@ -1,6 +1,12 @@
 # Shai-Hulud Detection Scanner
 
-A cross-platform security scanner for detecting the **Shai-Hulud** npm supply chain malware. Available for both Windows (PowerShell) and Unix/Linux/macOS (Bash).
+A cross-platform **pure Go** security scanner for detecting the **Shai-Hulud** npm supply chain malware.
+
+
+- Easy to distribute as a single binary
+- Cross-platform (Windows, macOS, Linux)
+
+---
 
 ## Background
 
@@ -12,6 +18,8 @@ Shai-Hulud is a sophisticated supply chain attack targeting npm packages that wa
 - Clone and manipulate private repositories
 
 This scanner detects indicators of compromise (IOCs) from both variants.
+
+---
 
 ## Features
 
@@ -32,111 +40,123 @@ The scanner performs the following checks:
 | TruffleHog detection | PATH only | Yes | Detects credential harvesting tool |
 | Env+exfil pattern scan | No | Yes | Finds code combining env access with exfiltration |
 
+---
+
 ## Requirements
 
-### PowerShell (Windows)
-- Windows PowerShell 5.1 or later
-- Git (optional, for branch/remote analysis)
-- npm (optional, for cache path detection)
+### Go toolchain
 
-### Bash (Linux/macOS/WSL)
-- Bash 4.0 or later (for associative arrays)
-- curl (for fetching IOC feeds)
-- Git (optional, for branch/remote analysis)
-- npm (optional, for cache path detection)
-- Python 3 (for JSON parsing in postinstall hook analysis)
-- Standard Unix utilities: `find`, `sha256sum`, `sha1sum`, `grep`
+This project is implemented in **pure Go**.
 
-### S3 Scanning (Linux)
-- Requires `mc` and `jq` to be installed
-- Downloads all S3 assets to a folder in `/tmp`
-- Then calls `Check-ShaiHulud-Dynamic.sh` the scan the download location
-- Example `./s3-bucket-scanner.sh -a MY_KEY -s MY_SECRET -h MY.MINIO.INSTANCE -b BUCKET --path MY/PATH`
-- Run `./s3-bucket-scanner.sh -h` for usage
-- Requires `Check-ShaiHulud-Dynamic.sh` to be present in the same folder
+- **Minimum Go version**: `1.25`
+- No CGO dependencies (cross-compilation friendly)
+
+### Supported platforms
+
+The scanner is intended to run on:
+
+- Windows (amd64, arm64)
+- macOS (amd64, arm64/Apple Silicon)
+- Linux (amd64, arm64)
+
+All platform support is handled via standard Go cross-compilation.
+
+---
 
 ## Installation
 
-Clone or download the repository to your system:
+### From source (Go 1.25+)
+
+Clone the repository and build the CLI:
 
 ```bash
-git clone https://github.com/your-repo/shai-hulud-scanner.git
-cd shai-hulud-scanner
+git clone https://github.com/your-repo/go-Shai-Hulud-Scanner.git
+cd go-Shai-Hulud-Scanner
+
+# Run tests
+go test ./...
+
+# Build a local debug binary
+go build -o shai-hulud-scanner ./cmd/scanner
 ```
 
-Or download the individual script for your platform:
-- **Windows**: `Check-ShaiHulud-Dynamic.ps1`
-- **Unix/Linux/macOS**: `Check-ShaiHulud-Dynamic.sh`
-
-## Usage
-
-### PowerShell (Windows)
-
-```powershell
-# Allow script execution (session-only)
-Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
-
-# Quick scan (default) - fast, covers common IOCs
-.\Check-ShaiHulud-Dynamic.ps1 -RootPaths "C:\Projects"
-
-# Full scan - comprehensive, takes longer
-.\Check-ShaiHulud-Dynamic.ps1 -RootPaths "C:\Projects" -ScanMode Full
-
-# Scan multiple directories
-.\Check-ShaiHulud-Dynamic.ps1 -RootPaths "C:\Projects", "D:\Work" -ScanMode Full
-
-# Custom report output path
-.\Check-ShaiHulud-Dynamic.ps1 -RootPaths "C:\Projects" -ReportPath "C:\Reports\scan.txt"
-```
-
-#### PowerShell Parameters
-
-| Parameter | Default | Description |
-|-----------|---------|-------------|
-| `-RootPaths` | `$env:USERPROFILE` | One or more directories to scan |
-| `-ScanMode` | `Quick` | `Quick` for fast scan, `Full` for comprehensive |
-| `-ReportPath` | `.\ShaiHulud-Scan-Report.txt` | Output file for detailed report |
-
-### Bash (Linux/macOS/WSL)
+With Go 1.25+ in your `PATH`, you can also use:
 
 ```bash
-# Make the script executable
-chmod +x Check-ShaiHulud-Dynamic-macOS.sh
-
-# Quick scan (default) - fast, covers common IOCs
-./Check-ShaiHulud-Dynamic-macOS.sh -r ~/projects
-
-# Full scan - comprehensive, takes longer
-./Check-ShaiHulud-Dynamic-macOS.sh -r ~/projects -m full
-
-# Scan multiple directories (comma-separated)
-./Check-ShaiHulud-Dynamic-macOS.sh -r ~/projects,~/work -m full
-
-# Custom report output path
-./Check-ShaiHulud-Dynamic-macOS.sh -r ~/projects -o ~/reports/scan.txt
-
-# Show help
-./Check-ShaiHulud-Dynamic-macOS.sh -h
+go install ./cmd/scanner
 ```
 
-#### Bash Parameters
+This will place `shai-hulud-scanner` into your `GOBIN` (or `$GOPATH/bin`).
 
-| Parameter | Default | Description |
-|-----------|---------|-------------|
-| `-r, --roots` | `$HOME` | Comma-separated directories to scan |
-| `-m, --mode` | `quick` | `quick` for fast scan, `full` for comprehensive |
-| `-o, --report` | `./ShaiHulud-Scan-Report.txt` | Output file for detailed report |
-| `-h, --help` | - | Show usage help |
+### Using the Makefile
+
+Once you have Go installed, you can use the provided `Makefile` shortcuts:
+
+```bash
+# Run tests
+make test
+
+# Build a local debug binary (bin/shai-hulud-scanner)
+make debug
+
+# Build common release binaries into dist/
+make release-build
+```
+---
+
+## Usage (Go CLI)
+
+After building or installing the binary, you can run:
+
+```bash
+shai-hulud-scanner [options] [paths...]
+```
+
+If no paths are provided, the scanner defaults to your home directory.
+
+### CLI options
+
+The available flags map directly to `cmd/scanner/main.go`:
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `-mode` | `quick` | Scan mode: `quick` or `full` |
+| `-report` | `./ShaiHulud-Scan-Report.txt` | File path for the detailed report |
+| `-no-banner` | `false` | Do not print the ASCII banner |
+| `-files-only` | `false` | Only scan for malicious files (skip git, npm cache, etc.) |
+| `-help` | - | Show help/usage information |
+| `-version` | - | Print version and exit |
+
+### Examples
+
+```bash
+# Quick scan of your home directory (default)
+shai-hulud-scanner
+
+# Full scan of your home directory
+shai-hulud-scanner -mode full
+
+# Quick scan of a specific project
+shai-hulud-scanner /path/to/project
+
+# Full scan of multiple projects with a custom report path
+shai-hulud-scanner -mode full -report ./ShaiHulud-Scan-Report.txt /projects/app1 /projects/app2
+
+# Files-only scan (skip git/npm cache/credentials) for CI
+shai-hulud-scanner -files-only /workspace
+```
+
+---
 
 ## Scan Modes
 
-**Quick Mode** (~10-30 seconds)
+**Quick Mode**
 - Scans top-level `node_modules` only (depth-limited)
 - Checks root `package.json` for suspicious hooks
 - Hash-scans only files with suspicious names
 - Skips npm cache, self-hosted runners, env patterns
 
-**Full Mode** (~5-30+ minutes depending on codebase size)
+**Full Mode**
 - Recursive scan of all `node_modules` directories
 - Complete npm cache analysis
 - Full hash scan of all JS/TS files
@@ -201,66 +221,12 @@ workflow-content  Workflow contains: self-hosted       C:\Projects\app\.github\w
 malware-hash      SHA256 match: Shai-Hulud bundle.js   C:\Projects\app\dist\bundle.js
 ```
 
-## Performance Optimizations
-
-The scanner is optimized for large codebases:
-
-- **HashSet/associative array lookups** for O(1) package matching (vs O(n) iteration)
-- **Scoped package separation** - pre-sorts `@scope/package` format for efficient matching
-- **Depth-limited Quick mode** - avoids deep recursion in `node_modules`
-- **Progress throttling** - updates every 50-100 items to reduce overhead (PowerShell)
-- **Early termination** - skips redundant checks when matches found
-- **Compiled regex** - single-pass pattern matching for npm cache scan
-
-## Offline Support
-
-Both scripts support offline operation:
-
-1. On first successful run, the compromised packages list is cached locally to `compromised-packages-cache.txt`
-2. If the IOC feed is unreachable, the scanner falls back to the cached snapshot
-3. File-based IOC checks (hashes, filenames, patterns) work without network access
-
-## Platform Differences
-
-| Feature | PowerShell | Bash |
-|---------|------------|------|
-| Progress indicators | Yes (`Write-Progress`) | No |
-| JSON parsing | Built-in (`ConvertFrom-Json`) | Requires Python 3 |
-| Color output | Yes | Yes (ANSI codes) |
-| ASCII banner | Yes | Yes |
-| Parallel execution | No | No |
-
-## Limitations
-
-- **Read-only** - does not delete or modify any files
-- **Network recommended** - fetches live IOC feeds (will continue with local checks if offline)
-- **False positives possible** - some patterns (like `node -e` in postinstall) may flag legitimate packages
-- **Bash requires Python 3** - for JSON parsing in postinstall hook analysis
-
 ## References
 
 - [Wiz: Shai-Hulud npm Supply Chain Attack](https://www.wiz.io/blog/shai-hulud-npm-supply-chain-attack)
 - [Wiz: Shai-Hulud 2.0 Ongoing Supply Chain Attack](https://www.wiz.io/blog/shai-hulud-2-0-ongoing-supply-chain-attack)
 - [Unit 42: npm Supply Chain Attack Analysis](https://unit42.paloaltonetworks.com/npm-supply-chain-attack/)
 - [Sngular: Shai-Hulud Integrity Scanner](https://github.com/sngular/shai-hulud-integrity-scanner)
-
-## Contributing
-
-To add new IOCs, update the following sections in the scripts:
-
-### PowerShell (`Check-ShaiHulud-Dynamic.ps1`)
-- `$MaliciousFileNames` - known malicious filenames
-- `$SuspiciousBranchPatterns` - git branch patterns
-- `$MaliciousHashes` / `$MaliciousHashesSHA1` - file hashes
-- `$SuspiciousWorkflowPatterns` - GitHub Actions patterns
-- `$SuspiciousPostinstallPatterns` - npm script patterns
-
-### Bash (`Check-ShaiHulud-Dynamic.sh`)
-- `MALICIOUS_FILES` - known malicious filenames
-- `SUSPICIOUS_BRANCH_PATTERNS` - git branch patterns
-- `MAL_SHA256` / `MAL_SHA1` - file hashes
-- `SUSPICIOUS_WORKFLOW_PATTERNS` - GitHub Actions patterns
-- `SUSPICIOUS_HOOK_PATTERNS` - npm script patterns
 
 ## License
 
