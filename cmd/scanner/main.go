@@ -9,7 +9,7 @@ import (
 	"shai-hulud-scanner/pkg/scanner"
 )
 
-const version = "1.0.0"
+const version = "1.0.1"
 
 const bannerNarrow = `
    ___  _  _   _   ___      _  _ _   _ _    _   _ ___
@@ -57,7 +57,6 @@ func main() {
 
 	flag.Parse()
 
-	// Handle version
 	if *showVer {
 		fmt.Printf("shai-hulud-scanner version %s\n", version)
 		os.Exit(0)
