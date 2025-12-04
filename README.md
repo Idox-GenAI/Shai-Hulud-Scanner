@@ -230,5 +230,5 @@ malware-hash      SHA256 match: Shai-Hulud bundle.js   C:\Projects\app\dist\bund
 
 ## License
 
-MIT
+[MIT](./LICENSE.txt)
 
