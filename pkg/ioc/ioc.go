@@ -10,6 +10,7 @@ import (
 // PackageFeedURLs contains URLs that provide lists of compromised npm packages.
 var PackageFeedURLs = []string{
 	"https://raw.githubusercontent.com/wiz-sec-public/wiz-research-iocs/refs/heads/main/reports/shai-hulud-2-packages.csv",
+	"https://raw.githubusercontent.com/DataDog/indicators-of-compromise/main/shai-hulud-2.0/shai-hulud-2.0.csv",
 }
 
 // MaliciousFileNames contains known Shai-Hulud artifact filenames (workflows/payloads).
