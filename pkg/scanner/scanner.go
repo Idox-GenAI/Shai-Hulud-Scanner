@@ -48,7 +48,7 @@ func DefaultConfig() *Config {
 		ReportPath: "./ShaiHulud-Scan-Report.txt",
 		NoBanner:   false,
 		FilesOnly:  false,
-		CacheFile:  "./compromised-packages-cache.txt",
+		CacheFile:  filepath.Join(os.TempDir(), "compromised-packages-cache.txt"),
 		Output:     os.Stdout,
 	}
 }

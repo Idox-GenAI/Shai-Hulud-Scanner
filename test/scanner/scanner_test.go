@@ -30,6 +30,15 @@ func TestDefaultConfig(t *testing.T) {
 	if cfg.ReportPath == "" {
 		t.Error("DefaultConfig() ReportPath should not be empty")
 	}
+	if cfg.CacheFile == "" {
+		t.Error("DefaultConfig() CacheFile should not be empty")
+	}
+	if filepath.Dir(cfg.CacheFile) != os.TempDir() {
+		t.Errorf("DefaultConfig() CacheFile dir = %v, want %v", filepath.Dir(cfg.CacheFile), os.TempDir())
+	}
+	if !strings.HasSuffix(cfg.CacheFile, "compromised-packages-cache.txt") {
+		t.Errorf("DefaultConfig() CacheFile name = %v, want compromised-packages-cache.txt", cfg.CacheFile)
+	}
 	if cfg.Output == nil {
 		t.Error("DefaultConfig() Output should not be nil")
 	}
