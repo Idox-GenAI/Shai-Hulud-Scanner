@@ -10,9 +10,11 @@ import (
 	"shai-hulud-scanner/pkg/scanner"
 )
 
-const version = "1.0.2"
+const version = "1.0.3"
 
 const defaultReportName = "ShaiHulud-Scan-Report.txt"
+
+const defaultCacheFileName = "compromised-packages-cache.txt"
 
 const bannerNarrow = `
    ___  _  _   _   ___      _  _ _   _ _    _   _ ___
@@ -50,10 +52,11 @@ func main() {
 	var (
 		mode       = flag.String("mode", "quick", "Scan mode: quick or full")
 		reportPath = flag.String("report", "./"+defaultReportName, "Report output path")
+		cachePath  = flag.String("cache", "", "Path or directory for compromised package cache file (default: system temp dir)")
 		noBanner   = flag.Bool("no-banner", false, "Do not print the banner")
 		filesOnly  = flag.Bool("files-only", false, "Only scan for malicious files (skip git, npm cache, etc.)")
 		showHelp   = flag.Bool("help", false, "Show help message")
-		showVer    = flag.Bool("version", false, "Show version")
+		showVer    = flag.Bool("V", false, "Show version")
 	)
 
 	flag.Usage = printUsage
@@ -103,7 +106,6 @@ func main() {
 		rootPaths = []string{homeDir}
 	}
 
-	// Print banner
 	if !*noBanner {
 		printBanner(os.Stdout)
 		fmt.Println("============================================")
@@ -121,15 +123,24 @@ func main() {
 		fmt.Println()
 	}
 
-	// Create scanner configuration
-	cfg := &scanner.Config{
-		RootPaths:  rootPaths,
-		ScanMode:   scanner.ScanMode(scanMode),
-		ReportPath: resolvedReportPath,
-		NoBanner:   *noBanner,
-		FilesOnly:  *filesOnly,
-		Output:     os.Stdout,
+	// Create a scanner configuration, starting from defaults so that
+	// features like feed caching are consistently enabled.
+	cfg := scanner.DefaultConfig()
+	cfg.RootPaths = rootPaths
+	cfg.ScanMode = scanner.ScanMode(scanMode)
+	cfg.ReportPath = resolvedReportPath
+	cfg.NoBanner = *noBanner
+	cfg.FilesOnly = *filesOnly
+	if *cachePath != "" {
+		resolvedCachePath := *cachePath
+		if info, err := os.Stat(resolvedCachePath); err == nil && info.IsDir() {
+			resolvedCachePath = filepath.Join(resolvedCachePath, defaultCacheFileName)
+		} else if strings.HasSuffix(resolvedCachePath, string(os.PathSeparator)) {
+			resolvedCachePath = filepath.Join(resolvedCachePath, defaultCacheFileName)
+		}
+		cfg.CacheFile = resolvedCachePath
 	}
+	cfg.Output = os.Stdout
 	scan := scanner.New(cfg)
 	rpt, err := scan.Run()
 	if err != nil {

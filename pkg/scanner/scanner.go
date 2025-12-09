@@ -48,7 +48,7 @@ func DefaultConfig() *Config {
 		ReportPath: "./ShaiHulud-Scan-Report.txt",
 		NoBanner:   false,
 		FilesOnly:  false,
-		CacheFile:  "./compromised-packages-cache.txt",
+		CacheFile:  filepath.Join(os.TempDir(), "compromised-packages-cache.txt"),
 		Output:     os.Stdout,
 	}
 }
@@ -182,27 +182,52 @@ func (s *Scanner) countScopedPackages() int {
 func (s *Scanner) loadCompromisedPackages() error {
 	var allPackages []string
 
-	for _, url := range ioc.PackageFeedURLs {
-		s.log("[*] Fetching compromised package list from: %s", url)
-		pkgs, err := s.fetchPackageList(url)
-		if err != nil {
-			s.log("[!] Failed to fetch %s: %v", url, err)
-			continue
+	// Prefer a fresh cache (<24h old) when available to avoid unnecessary
+	// network requests and keep behavior predictable in offline scenarios.
+	usedFreshCache := false
+	if s.config.CacheFile != "" {
+		if info, err := os.Stat(s.config.CacheFile); err == nil {
+			age := time.Since(info.ModTime())
+			if age < 24*time.Hour {
+				s.log("[*] Using cached compromised package snapshot (fresh, <24h): %s", s.config.CacheFile)
+				pkgs, err := s.loadCacheFile()
+				if err != nil {
+					s.log("[!] Failed to load cache file %s: %v", s.config.CacheFile, err)
+				} else {
+					allPackages = pkgs
+					usedFreshCache = true
+				}
+			} else {
+				s.log("[*] Cache file is stale (age: %s); fetching latest compromised package list", age.Round(time.Minute))
+			}
 		}
-		allPackages = append(allPackages, pkgs...)
 	}
 
-	if len(allPackages) == 0 && s.config.CacheFile != "" {
-		s.log("[*] Using cached compromised package snapshot: %s", s.config.CacheFile)
-		pkgs, err := s.loadCacheFile()
-		if err == nil {
-			allPackages = pkgs
+	if !usedFreshCache {
+		for _, url := range ioc.PackageFeedURLs {
+			s.log("[*] Fetching compromised package list from: %s", url)
+			pkgs, err := s.fetchPackageList(url)
+			if err != nil {
+				s.log("[!] Failed to fetch %s: %v", url, err)
+				continue
+			}
+			allPackages = append(allPackages, pkgs...)
 		}
-	}
 
-	// Save to cache
-	if len(allPackages) > 0 && s.config.CacheFile != "" {
-		s.saveCacheFile(allPackages)
+		if len(allPackages) == 0 && s.config.CacheFile != "" {
+			s.log("[*] Using cached compromised package snapshot: %s", s.config.CacheFile)
+			pkgs, err := s.loadCacheFile()
+			if err == nil {
+				allPackages = pkgs
+			}
+		}
+
+		// Save to cache whenever we have any packages (from feeds or cache
+		// fallback). This keeps the cache file up-to-date and refreshes its
+		// modification time when we successfully load data.
+		if len(allPackages) > 0 && s.config.CacheFile != "" {
+			s.saveCacheFile(allPackages)
+		}
 	}
 
 	// Parse packages
