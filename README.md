@@ -4,7 +4,7 @@ A cross-platform **pure Go** security scanner for detecting the **Shai-Hulud** n
 
 
 - Easy to distribute as a single binary
-- Cross-platform (Windows, macOS, Linux)
+- Cross-platform (Windows, macOS, and GNU/Linux)
 
 ---
 
@@ -42,30 +42,22 @@ The scanner performs the following checks:
 
 ---
 
-## Requirements
+## Installation
 
-### Go toolchain
+### From Release Binaries
 
-This project is implemented in **pure Go**.
+1. Download the latest release version appropriae to your platform(s)
+1. Ensure this final in available on your `PATH`, or correctly installed via your Package Manager
+1. Run the scanner with appropriate switches (see [CLI Usage](#cli-usage) below)
+
+### From Source (Go 1.25+) for Development
+
+To compile the souce, you will need to install the Go toolchain as this project is implemented in **pure Go**.
 
 - **Minimum Go version**: `1.25`
 - No CGO dependencies (cross-compilation friendly)
 
-### Supported platforms
-
-The scanner is intended to run on:
-
-- Windows (amd64, arm64)
-- macOS (amd64, arm64/Apple Silicon)
-- Linux (amd64, arm64)
-
-All platform support is handled via standard Go cross-compilation.
-
----
-
-## Installation
-
-### From source (Go 1.25+)
+Please follow the [instructions appropriate to your platform](https://go.dev/doc/install).
 
 Clone the repository and build the CLI:
 
@@ -104,13 +96,15 @@ make release-build
 ```
 ---
 
-## Usage (Go CLI)
+## CLI Usage
 
 After building or installing the binary, you can run:
 
 ```bash
 shai-hulud-scanner [options] [paths...]
 ```
+
+**Note:** Go is sensitive to order and all `options` _must_ come first.
 
 If no paths are provided, the scanner defaults to your home directory.
 
@@ -120,11 +114,12 @@ The available flags map directly to `cmd/scanner/main.go`:
 
 | Flag | Default | Description |
 |------|---------|-------------|
-| `-mode` | `quick` | Scan mode: `quick` or `full` |
-| `-report` | `./ShaiHulud-Scan-Report.txt` | File path for the detailed report |
-| `-no-banner` | `false` | Do not print the ASCII banner |
+| `-cache` | System temp dir | Directory in whch to store the compromised package cache file |
 | `-files-only` | `false` | Only scan for malicious files (skip git, npm cache, etc.) |
 | `-help` | - | Show help/usage information |
+| `-mode` | `quick` | Scan mode: `quick` or `full` |
+| `-no-banner` | `false` | Do not print the ASCII banner |
+| `-report` | `./ShaiHulud-Scan-Report.txt` | File path for the detailed report |
 | `-version` | - | Print version and exit |
 
 ### Examples
