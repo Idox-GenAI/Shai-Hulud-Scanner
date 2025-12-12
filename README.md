@@ -144,13 +144,13 @@ shai-hulud-scanner -mode full -report ./ShaiHulud-Scan-Report.txt /projects/app1
 shai-hulud-scanner -files-only /workspace
 
 # Strict mode: fail on ANY finding (old behavior)
-shai-hulud-scanner --strict /path/to/project
+shai-hulud-scanner -strict /path/to/project
 
-# Warn-only mode: only fail on high-confidence detections
-shai-hulud-scanner --warn-only /path/to/project
+# Warn-only mode: only fail on critical findings
+shai-hulud-scanner -warn-only /path/to/project
 
 # Use an allowlist configuration file
-shai-hulud-scanner --config shai-hulud.config.json /path/to/project
+shai-hulud-scanner -config shai-hulud.config.json /path/to/project
 ```
 
 ---
@@ -205,14 +205,16 @@ Findings are classified into three severity levels:
 
 ### Exit Code Behavior
 
-| Findings Present | Default | `--strict` | `--warn-only` |
-|------------------|---------|------------|---------------|
+| Findings Present | Default | `-strict` | `-warn-only` |
+|------------------|---------|-----------|--------------|
 | Critical | Exit 2 | Exit 2 | Exit 2 |
 | High | Exit 1 | Exit 1 | Exit 0 |
 | Warning only | Exit 0 | Exit 1 | Exit 0 |
 | None | Exit 0 | Exit 0 | Exit 0 |
 
 **Default behavior**: Warnings alone will NOT fail your CI pipeline. Only high-confidence detections (compromised packages, known malware files) will cause exit code 1.
+
+**Note**: The `-warn-only` flag controls exit codes based on finding severity, while `-files-only` controls what gets scanned (skipping git, npm cache, credentials). They serve different purposes and can be used together.
 
 ---
 
@@ -253,10 +255,12 @@ Create a file named `shai-hulud.config.json`:
 | `allowPaths` | Path patterns to exclude. Supports `**` for recursive matching |
 | `disableFindingTypes` | Finding types to completely disable |
 
+**Security Warning**: Be cautious when using wildcard patterns (e.g., `@cypress/*`, `@angular/*`) in `allowPackages`. These patterns will allow **any** package in that namespace, including potentially malicious packages. Only use wildcards for well-known, trusted namespaces, and consider being more specific when possible (e.g., `@cypress/react` instead of `@cypress/*`).
+
 ### Usage
 
 ```bash
-shai-hulud-scanner --config shai-hulud.config.json /path/to/project
+shai-hulud-scanner -config shai-hulud.config.json /path/to/project
 ```
 
 ### CI/CD Integration Examples
@@ -265,20 +269,20 @@ shai-hulud-scanner --config shai-hulud.config.json /path/to/project
 ```yaml
 - name: Security Scan
   run: |
-    shai-hulud-scanner --config .shai-hulud.config.json ./
+    shai-hulud-scanner -config .shai-hulud.config.json ./
 ```
 
 **GitLab CI:**
 ```yaml
 security_scan:
   script:
-    - shai-hulud-scanner --config .shai-hulud.config.json ./
+    - shai-hulud-scanner -config .shai-hulud.config.json ./
   allow_failure: false
 ```
 
 **Azure DevOps:**
 ```yaml
-- script: shai-hulud-scanner --config .shai-hulud.config.json ./
+- script: shai-hulud-scanner -config .shai-hulud.config.json ./
   displayName: 'Shai-Hulud Security Scan'
 ```
 
@@ -345,7 +349,7 @@ The scanner produces:
          /project/node_modules/cypress/runner.js
 
 NOTE: Only warnings were found. Common packages like core-js, cypress, and
-      angular may trigger these. Use --strict to fail on warnings.
+      angular may trigger these. Use -strict to fail on warnings.
 ```
 
 **High-confidence detections (exits 1):**
