@@ -150,83 +150,61 @@ func (s *Scanner) Run() (*report.Report, error) {
 	var wg sync.WaitGroup
 
 	s.logSection("Scanning for known Shai-Hulud artifact files")
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	wg.Go(func() {
 		s.scanMaliciousFiles()
-	}()
+	})
 
 	s.logSection("Checking for TruffleHog installation")
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	wg.Go(func() {
 		s.scanTrufflehog()
-	}()
+	})
 
 	if !s.config.FilesOnly {
 		s.logSection("Scanning for suspicious git branches and remotes")
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			s.scanGit()
-		}()
+		})
 
 		s.logSection("Scanning GitHub Actions workflows")
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			s.scanWorkflows()
-		}()
+		})
 
 		s.logSection("Checking cloud credential files")
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			s.scanCredentials()
-		}()
+		})
 
 		s.logSection("Scanning postinstall hooks")
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			s.scanHooks()
-		}()
+		})
 
 		s.logSection("Hash-based malware detection")
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			s.scanHashes()
-		}()
+		})
 
 		s.logSection("Scanning lockfiles for compromised packages")
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			s.scanLockfiles()
-		}()
+		})
 
 		s.logSection("Scanning for compromised namespaces")
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			s.scanCompromisedNamespaces()
-		}()
+		})
 
 		if s.config.ScanMode == ScanModeFull {
 			s.logSection("Checking for self-hosted runners")
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
+			wg.Go(func() {
 				s.scanRunners()
-			}()
+			})
 
 			s.logSection("Checking for migration suffix attack")
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
+			wg.Go(func() {
 				s.scanMigrationSuffix()
-			}()
+			})
 		} else {
 			s.log("[Quick] Skipping self-hosted runner scan (use --mode full)")
 			s.log("[Quick] Skipping migration suffix scan (use --mode full)")
@@ -235,11 +213,9 @@ func (s *Scanner) Run() (*report.Report, error) {
 
 	if s.config.ScanMode == ScanModeFull {
 		s.logSection("Scanning for suspicious env+exfil patterns")
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			s.scanEnvPatterns()
-		}()
+		})
 	} else {
 		s.log("[Quick] Skipping env+exfil pattern scan (use --mode full)")
 	}
@@ -251,7 +227,7 @@ func (s *Scanner) Run() (*report.Report, error) {
 	return s.report, nil
 }
 
-func (s *Scanner) log(format string, args ...interface{}) {
+func (s *Scanner) log(format string, args ...any) {
 	s.mu.Lock()
 	fmt.Fprintf(s.config.Output, format+"\n", args...)
 	s.mu.Unlock()
@@ -661,7 +637,7 @@ func (s *Scanner) checkGitRepo(repoDir string) {
 	output, err := cmd.Output()
 	if err == nil {
 		branches := string(output)
-		for _, line := range strings.Split(branches, "\n") {
+		for line := range strings.SplitSeq(branches, "\n") {
 			branch := strings.TrimSpace(line)
 			branch = strings.TrimPrefix(branch, "* ")
 			if ioc.ContainsSuspiciousBranchPattern(branch) {
@@ -1217,8 +1193,8 @@ func (s *Scanner) scanYarnLock(lockPath string) {
 
 	// yarn.lock uses a custom format. We scan for package names at the start of lines.
 	// Format: "package-name@version:" or "@scope/name@version:"
-	lines := strings.Split(string(content), "\n")
-	for _, line := range lines {
+	lines := strings.SplitSeq(string(content), "\n")
+	for line := range lines {
 		line = strings.TrimSpace(line)
 		if line == "" || strings.HasPrefix(line, "#") {
 			continue
@@ -1282,8 +1258,8 @@ func (s *Scanner) scanPnpmLock(lockPath string) {
 	// pnpm-lock.yaml is YAML. We do a simple text-based scan for package names
 	// since full YAML parsing would require an external dependency.
 	// Packages appear as keys like: /@scope/name@version: or /name@version:
-	lines := strings.Split(string(content), "\n")
-	for _, line := range lines {
+	lines := strings.SplitSeq(string(content), "\n")
+	for line := range lines {
 		line = strings.TrimSpace(line)
 		if line == "" || strings.HasPrefix(line, "#") {
 			continue

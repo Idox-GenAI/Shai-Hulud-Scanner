@@ -132,24 +132,24 @@ func matchPattern(pattern, value string) bool {
 // matchWildcard performs wildcard matching.
 func matchWildcard(pattern, value string) bool {
 	// Handle @scope/* pattern
-	if strings.HasSuffix(pattern, "/*") {
-		prefix := strings.TrimSuffix(pattern, "/*")
+	if before, ok := strings.CutSuffix(pattern, "/*"); ok {
+		prefix := before
 		if strings.HasPrefix(value, prefix+"/") {
 			return true
 		}
 	}
 
 	// Handle *-suffix pattern
-	if strings.HasPrefix(pattern, "*") {
-		suffix := strings.TrimPrefix(pattern, "*")
+	if after, ok := strings.CutPrefix(pattern, "*"); ok {
+		suffix := after
 		if strings.HasSuffix(value, suffix) {
 			return true
 		}
 	}
 
 	// Handle prefix-* pattern
-	if strings.HasSuffix(pattern, "*") {
-		prefix := strings.TrimSuffix(pattern, "*")
+	if before, ok := strings.CutSuffix(pattern, "*"); ok {
+		prefix := before
 		if strings.HasPrefix(value, prefix) {
 			return true
 		}
@@ -179,11 +179,11 @@ func matchGlobPattern(pattern, path string) bool {
 			}
 
 			// Check both prefix and suffix
-			prefixIdx := strings.Index(path, prefix)
-			if prefixIdx == -1 {
+			_, after, ok := strings.Cut(path, prefix)
+			if !ok {
 				return false
 			}
-			remainingPath := path[prefixIdx+len(prefix):]
+			remainingPath := after
 			return strings.Contains(remainingPath, suffix)
 		}
 	}

@@ -18,8 +18,8 @@ The scanner detects indicators of compromise (IOCs) from Shai-Hulud malware vari
 ## Technology Stack
 
 ### Go Version
-- **Go 1.25** (minimum required version)
-- All code must be compatible with Go 1.25 features and syntax
+- **Go 1.26** (minimum required version)
+- All code must be compatible with Go 1.26 features and syntax
 
 ### Target Platforms
 This project must support cross-compilation for:

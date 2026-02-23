@@ -1,6 +1,7 @@
 package ioc_test
 
 import (
+	"slices"
 	"strings"
 	"testing"
 
@@ -295,13 +296,7 @@ func TestMaliciousFileNames(t *testing.T) {
 
 	expectedFiles := []string{"shai-hulud.js", "setup_bun.js", "bun_environment.js"}
 	for _, expected := range expectedFiles {
-		found := false
-		for _, f := range ioc.MaliciousFileNames {
-			if f == expected {
-				found = true
-				break
-			}
-		}
+		found := slices.Contains(ioc.MaliciousFileNames, expected)
 		if !found {
 			t.Errorf("MaliciousFileNames missing expected file: %s", expected)
 		}
@@ -420,13 +415,7 @@ func TestCompromisedNamespacesList(t *testing.T) {
 		"@nativescript-community",
 	}
 	for _, expected := range expectedNamespaces {
-		found := false
-		for _, ns := range ioc.CompromisedNamespaces {
-			if ns == expected {
-				found = true
-				break
-			}
-		}
+		found := slices.Contains(ioc.CompromisedNamespaces, expected)
 		if !found {
 			t.Errorf("CompromisedNamespaces missing expected namespace: %s", expected)
 		}
