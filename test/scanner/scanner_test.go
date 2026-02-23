@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"shai-hulud-scanner/pkg/ioc"
+	"shai-hulud-scanner/pkg/report"
 	"shai-hulud-scanner/pkg/scanner"
 )
 
@@ -225,6 +226,85 @@ func TestFeedCaching_UsesFreshCacheWhenRecent(t *testing.T) {
 	}
 	if strings.Contains(output, "Fetching compromised package list from:") {
 		t.Fatalf("did not expect feeds to be fetched when cache is fresh, got: %s", output)
+	}
+}
+
+func TestFeedCaching_FreshCSVCacheParsesPackageFieldAndSkipsHeader(t *testing.T) {
+	origURLs := append([]string(nil), ioc.PackageFeedURLs...)
+	defer func() { ioc.PackageFeedURLs = origURLs }()
+
+	tmpDir := t.TempDir()
+	cacheFile := filepath.Join(tmpDir, "compromised-cache.txt")
+
+	cacheCSV := strings.Join([]string{
+		"Package,Version",
+		"@evil/scopepkg,= 1.2.3",
+		"bad-unscoped,Some description",
+		",,,",
+		"",
+	}, "\n")
+	if err := os.WriteFile(cacheFile, []byte(cacheCSV), 0o644); err != nil {
+		t.Fatalf("failed to write cache file: %v", err)
+	}
+	now := time.Now()
+	if err := os.Chtimes(cacheFile, now, now); err != nil {
+		t.Fatalf("failed to set cache mtime: %v", err)
+	}
+
+	// Create matching packages to verify scoped/unscoped tokens are parsed
+	// from the first CSV field, not from whitespace-delimited text.
+	scopedDir := filepath.Join(tmpDir, "node_modules", "@evil", "scopepkg")
+	if err := os.MkdirAll(scopedDir, 0o755); err != nil {
+		t.Fatalf("failed to create scoped package dir: %v", err)
+	}
+	unscopedDir := filepath.Join(tmpDir, "node_modules", "bad-unscoped")
+	if err := os.MkdirAll(unscopedDir, 0o755); err != nil {
+		t.Fatalf("failed to create unscoped package dir: %v", err)
+	}
+
+	// Should not be used because cache is fresh.
+	ioc.PackageFeedURLs = []string{"https://example.invalid/feed.csv"}
+
+	var buf bytes.Buffer
+	cfg := scanner.DefaultConfig()
+	cfg.RootPaths = []string{tmpDir}
+	cfg.ScanMode = scanner.ScanModeQuick
+	cfg.ReportPath = filepath.Join(tmpDir, "report.txt")
+	cfg.NoBanner = true
+	cfg.FilesOnly = true
+	cfg.CacheFile = cacheFile
+	cfg.Output = &buf
+
+	s := scanner.New(cfg)
+	rpt, err := s.Run()
+	if err != nil {
+		t.Fatalf("Run() error = %v", err)
+	}
+
+	if rpt.CompromisedPkgCount != 2 {
+		t.Fatalf("CompromisedPkgCount = %d, want 2 (header and empty rows skipped)", rpt.CompromisedPkgCount)
+	}
+
+	findings := rpt.GetFindingsByType(report.FindingNodeModules)
+	if len(findings) != 2 {
+		t.Fatalf("node_modules findings = %d, want 2; output: %s", len(findings), buf.String())
+	}
+
+	foundScoped := false
+	foundUnscoped := false
+	for _, f := range findings {
+		if f.Indicator == "@evil/scopepkg" {
+			foundScoped = true
+		}
+		if f.Indicator == "bad-unscoped" {
+			foundUnscoped = true
+		}
+		if f.Indicator == "Package" || strings.Contains(f.Indicator, ",Some") {
+			t.Fatalf("unexpected malformed indicator parsed from CSV cache: %q", f.Indicator)
+		}
+	}
+	if !foundScoped || !foundUnscoped {
+		t.Fatalf("expected scoped and unscoped findings, got: %#v", findings)
 	}
 }
 

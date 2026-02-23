@@ -300,13 +300,10 @@ func (s *Scanner) loadCompromisedPackages() error {
 
 	// Parse packages
 	for _, pkg := range allPackages {
-		pkg = strings.TrimSpace(pkg)
-		if pkg == "" || strings.HasPrefix(pkg, "#") {
+		token := compromisedPackageToken(pkg)
+		if token == "" {
 			continue
 		}
-		// Extract first token (handle lines with multiple fields)
-		token := strings.Fields(pkg)[0]
-		token = strings.Trim(token, ",;|")
 
 		if strings.HasPrefix(token, "@") && strings.Contains(token, "/") {
 			// Scoped package
@@ -324,6 +321,39 @@ func (s *Scanner) loadCompromisedPackages() error {
 	}
 
 	return nil
+}
+
+// compromisedPackageToken extracts the package identifier from a feed/cache line.
+// Feeds are not consistent: some are plain package names, while others are CSV
+// rows like "Package,Version" or "@scope/name,= 1.2.3".
+func compromisedPackageToken(line string) string {
+	line = strings.TrimSpace(line)
+	if line == "" || strings.HasPrefix(line, "#") {
+		return ""
+	}
+
+	// Prefer the first CSV field when present so scoped packages and package
+	// names with descriptions/versions are parsed correctly.
+	if firstField, rest, ok := strings.Cut(line, ","); ok {
+		firstField = strings.TrimSpace(firstField)
+		rest = strings.TrimSpace(rest)
+		if strings.EqualFold(firstField, "package") && strings.EqualFold(rest, "version") {
+			return ""
+		}
+		line = firstField
+	} else {
+		fields := strings.Fields(line)
+		if len(fields) == 0 {
+			return ""
+		}
+		line = fields[0]
+	}
+
+	token := strings.Trim(strings.TrimSpace(line), ",;|")
+	if strings.EqualFold(token, "package") {
+		return ""
+	}
+	return token
 }
 
 func (s *Scanner) fetchPackageList(url string) ([]string, error) {
