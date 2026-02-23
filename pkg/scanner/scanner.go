@@ -67,6 +67,8 @@ type Scanner struct {
 	report           *report.Report
 	compromisedPkgs  map[string]bool            // unscoped packages
 	compromisedScope map[string]map[string]bool // scoped packages: scope -> name -> true
+	compromisedAny   map[string]bool            // full package name -> any version
+	compromisedVer   map[string]map[string]bool // full package name -> exact versions
 	scopes           map[string]bool
 	allowlist        *config.Allowlist
 	mu               sync.Mutex // protects report during parallel scans
@@ -82,6 +84,8 @@ func New(cfg *Config) *Scanner {
 		report:           report.NewReport(string(cfg.ScanMode), cfg.RootPaths),
 		compromisedPkgs:  make(map[string]bool),
 		compromisedScope: make(map[string]map[string]bool),
+		compromisedAny:   make(map[string]bool),
+		compromisedVer:   make(map[string]map[string]bool),
 		scopes:           make(map[string]bool),
 		allowlist:        cfg.Allowlist,
 	}
@@ -294,30 +298,19 @@ func (s *Scanner) loadCompromisedPackages() error {
 		// fallback). This keeps the cache file up-to-date and refreshes its
 		// modification time when we successfully load data.
 		if len(allPackages) > 0 && s.config.CacheFile != "" {
-			s.saveCacheFile(allPackages)
+			if err := s.saveCacheFile(allPackages); err != nil {
+				s.log("[!] Failed to save cache file %s: %v", s.config.CacheFile, err)
+			}
 		}
 	}
 
 	// Parse packages
-	for _, pkg := range allPackages {
-		token := compromisedPackageToken(pkg)
+	for _, raw := range allPackages {
+		token := compromisedPackageToken(raw)
 		if token == "" {
 			continue
 		}
-
-		if strings.HasPrefix(token, "@") && strings.Contains(token, "/") {
-			// Scoped package
-			parts := strings.SplitN(token, "/", 2)
-			scope := parts[0]
-			name := parts[1]
-			if s.compromisedScope[scope] == nil {
-				s.compromisedScope[scope] = make(map[string]bool)
-			}
-			s.compromisedScope[scope][name] = true
-			s.scopes[scope] = true
-		} else {
-			s.compromisedPkgs[token] = true
-		}
+		s.addCompromisedPackage(token, compromisedPackageVersions(raw, token))
 	}
 
 	return nil
@@ -354,6 +347,128 @@ func compromisedPackageToken(line string) string {
 		return ""
 	}
 	return token
+}
+
+func compromisedPackageVersions(line, token string) []string {
+	line = strings.TrimSpace(line)
+	if line == "" || !strings.Contains(line, ",") {
+		return nil
+	}
+
+	firstField, rest, ok := strings.Cut(line, ",")
+	if !ok {
+		return nil
+	}
+	firstField = strings.TrimSpace(firstField)
+	rest = strings.TrimSpace(rest)
+	if strings.EqualFold(firstField, "package") && strings.EqualFold(rest, "version") {
+		return nil
+	}
+	if !strings.EqualFold(firstField, token) {
+		return nil
+	}
+
+	versionSpec, _, _ := strings.Cut(rest, ",")
+	versionSpec = strings.TrimSpace(versionSpec)
+	if versionSpec == "" {
+		return nil
+	}
+
+	var versions []string
+	for part := range strings.SplitSeq(versionSpec, "||") {
+		v := normalizePackageVersion(part)
+		if !looksLikeExactPackageVersion(v) {
+			continue
+		}
+		versions = append(versions, v)
+	}
+	if len(versions) == 0 {
+		return nil
+	}
+	return versions
+}
+
+func looksLikeExactPackageVersion(v string) bool {
+	if v == "" {
+		return false
+	}
+	hasDigit := false
+	for _, r := range v {
+		switch {
+		case r >= '0' && r <= '9':
+			hasDigit = true
+		case r >= 'a' && r <= 'z':
+		case r >= 'A' && r <= 'Z':
+		case r == '.', r == '-', r == '+', r == '_':
+		default:
+			return false
+		}
+	}
+	return hasDigit
+}
+
+func normalizePackageVersion(v string) string {
+	v = strings.TrimSpace(v)
+	if strings.HasPrefix(v, "=") {
+		v = strings.TrimSpace(strings.TrimPrefix(v, "="))
+	}
+	if idx := strings.Index(v, "("); idx > 0 {
+		v = v[:idx]
+	}
+	return v
+}
+
+func (s *Scanner) addCompromisedPackage(pkgName string, versions []string) {
+	if pkgName == "" {
+		return
+	}
+
+	if strings.HasPrefix(pkgName, "@") && strings.Contains(pkgName, "/") {
+		parts := strings.SplitN(pkgName, "/", 2)
+		scope := parts[0]
+		name := parts[1]
+		if s.compromisedScope[scope] == nil {
+			s.compromisedScope[scope] = make(map[string]bool)
+		}
+		s.compromisedScope[scope][name] = true
+		s.scopes[scope] = true
+	} else {
+		s.compromisedPkgs[pkgName] = true
+	}
+
+	if len(versions) == 0 {
+		s.compromisedAny[pkgName] = true
+		return
+	}
+
+	if s.compromisedVer[pkgName] == nil {
+		s.compromisedVer[pkgName] = make(map[string]bool)
+	}
+	for _, v := range versions {
+		nv := normalizePackageVersion(v)
+		if nv == "" {
+			continue
+		}
+		s.compromisedVer[pkgName][nv] = true
+	}
+}
+
+func (s *Scanner) isCompromisedPackageNoVersion(pkgName string) bool {
+	return s.compromisedAny[pkgName]
+}
+
+func (s *Scanner) isCompromisedPackageVersion(pkgName, version string) bool {
+	if s.compromisedAny[pkgName] {
+		return true
+	}
+	version = normalizePackageVersion(version)
+	if version == "" {
+		return false
+	}
+	if versions := s.compromisedVer[pkgName]; versions != nil {
+		return versions[version]
+	}
+	return false
 }
 
 func (s *Scanner) fetchPackageList(url string) ([]string, error) {
@@ -397,16 +512,24 @@ func (s *Scanner) loadCacheFile() ([]string, error) {
 	return packages, scanner.Err()
 }
 
-func (s *Scanner) saveCacheFile(packages []string) {
+func (s *Scanner) saveCacheFile(packages []string) error {
+	if dir := filepath.Dir(s.config.CacheFile); dir != "" && dir != "." {
+		if err := os.MkdirAll(dir, 0o755); err != nil {
+			return err
+		}
+	}
 	f, err := os.Create(s.config.CacheFile)
 	if err != nil {
-		return
+		return err
 	}
 	defer f.Close()
 
 	for _, pkg := range packages {
-		fmt.Fprintln(f, pkg)
+		if _, err := fmt.Fprintln(f, pkg); err != nil {
+			return err
+		}
 	}
+	return nil
 }
 
 func (s *Scanner) findNodeModules() []string {
@@ -494,13 +617,16 @@ func (s *Scanner) scanNodeModules(nmDirs []string) {
 					pkgName := subEntry.Name()
 					if s.compromisedScope[name] != nil && s.compromisedScope[name][pkgName] {
 						fullName := name + "/" + pkgName
-						s.addFinding(report.FindingNodeModules, fullName, filepath.Join(childPath, pkgName))
-						s.log("    [!] FOUND: %s at %s", fullName, nm)
+						pkgDir := filepath.Join(childPath, pkgName)
+						if s.isCompromisedPackageVersion(fullName, s.readPackageVersion(pkgDir)) {
+							s.addFinding(report.FindingNodeModules, fullName, pkgDir)
+							s.log("    [!] FOUND: %s at %s", fullName, nm)
+						}
 					}
 				}
 			} else {
 				// Unscoped package
-				if s.compromisedPkgs[name] {
+				if s.compromisedPkgs[name] && s.isCompromisedPackageVersion(name, s.readPackageVersion(childPath)) {
 					s.addFinding(report.FindingNodeModules, name, childPath)
 					s.log("    [!] FOUND: %s at %s", name, nm)
 				}
@@ -549,7 +675,7 @@ func (s *Scanner) scanNpmCache(cachePath string) {
 
 		name := d.Name()
 		// Check unscoped
-		if s.compromisedPkgs[name] {
+		if s.compromisedPkgs[name] && s.isCompromisedPackageNoVersion(name) {
 			s.addFinding(report.FindingNpmCache, name, path)
 			s.log("    [!] FOUND in cache: %s", name)
 			return filepath.SkipDir
@@ -561,8 +687,10 @@ func (s *Scanner) scanNpmCache(cachePath string) {
 			for _, sub := range subEntries {
 				if sub.IsDir() && s.compromisedScope[name] != nil && s.compromisedScope[name][sub.Name()] {
 					fullName := name + "/" + sub.Name()
-					s.addFinding(report.FindingNpmCache, fullName, filepath.Join(path, sub.Name()))
-					s.log("    [!] FOUND in cache: %s", fullName)
+					if s.isCompromisedPackageNoVersion(fullName) {
+						s.addFinding(report.FindingNpmCache, fullName, filepath.Join(path, sub.Name()))
+						s.log("    [!] FOUND in cache: %s", fullName)
+					}
 				}
 			}
 		}
@@ -742,6 +870,9 @@ func (s *Scanner) scanCredentials() {
 		}
 
 		for _, credPath := range ioc.CloudCredentialPaths {
+			if credPath == ".env" {
+				continue
+			}
 			fullPath := filepath.Join(root, credPath)
 			if _, err := os.Stat(fullPath); err == nil {
 				s.addFinding(report.FindingCredentialFile, credPath, fullPath)
@@ -755,7 +886,7 @@ func (s *Scanner) scanCredentials() {
 					return nil
 				}
 				// Skip node_modules
-				if strings.Contains(path, "node_modules") {
+				if pathHasDirSegment(path, "node_modules") {
 					return nil
 				}
 				if strings.HasPrefix(d.Name(), ".env") {
@@ -830,7 +961,7 @@ func (s *Scanner) scanHooks() {
 					return nil
 				}
 				// Skip deeply nested node_modules
-				if strings.Count(path, "node_modules") > 1 {
+				if pathDirSegmentCount(path, "node_modules") > 1 {
 					return nil
 				}
 				if d.Name() == "package.json" {
@@ -888,7 +1019,7 @@ func (s *Scanner) scanHashes() {
 					return nil
 				}
 				// Skip deeply nested node_modules
-				if strings.Count(path, "node_modules") > 1 {
+				if pathDirSegmentCount(path, "node_modules") > 1 {
 					return nil
 				}
 				if suspiciousNames[d.Name()] {
@@ -902,10 +1033,7 @@ func (s *Scanner) scanHashes() {
 				if err != nil || d.IsDir() {
 					return nil
 				}
-				// Skip node_modules and .d.ts files
-				if strings.Contains(path, "node_modules") {
-					return nil
-				}
+				// Full mode scans node_modules too; payloads are often installed dependencies.
 				name := d.Name()
 				if strings.HasSuffix(name, ".d.ts") {
 					return nil
@@ -993,7 +1121,7 @@ func (s *Scanner) scanTrufflehog() {
 				}
 
 				// Check package.json for trufflehog references
-				if name == "package.json" && !strings.Contains(path, "node_modules"+string(filepath.Separator)+"node_modules") {
+				if name == "package.json" && pathDirSegmentCount(path, "node_modules") < 2 {
 					content, err := os.ReadFile(path)
 					if err == nil && strings.Contains(strings.ToLower(string(content)), "trufflehog") {
 						s.addFinding(report.FindingTrufflehogRef, "package.json references trufflehog", path)
@@ -1026,7 +1154,7 @@ func (s *Scanner) scanEnvPatterns() {
 			}
 
 			// Skip node_modules and .d.ts
-			if strings.Contains(path, "node_modules") {
+			if pathHasDirSegment(path, "node_modules") {
 				return nil
 			}
 			name := d.Name()
@@ -1085,7 +1213,7 @@ func (s *Scanner) scanCompromisedNamespaces() {
 			}
 
 			// Skip node_modules (we scan those separately)
-			if strings.Contains(path, "node_modules") {
+			if pathHasDirSegment(path, "node_modules") {
 				return nil
 			}
 
@@ -1128,7 +1256,7 @@ func (s *Scanner) scanLockfiles() {
 			}
 
 			// Skip node_modules
-			if strings.Contains(path, "node_modules") {
+			if pathHasDirSegment(path, "node_modules") {
 				return nil
 			}
 
@@ -1156,10 +1284,7 @@ func (s *Scanner) scanPackageLockJSON(lockPath string) {
 
 	var lockfile struct {
 		Packages     map[string]json.RawMessage `json:"packages"`
-		Dependencies map[string]struct {
-			Version      string                     `json:"version"`
-			Dependencies map[string]json.RawMessage `json:"dependencies,omitempty"`
-		} `json:"dependencies"`
+		Dependencies map[string]packageLockDep  `json:"dependencies"`
 	}
 
 	if err := json.Unmarshal(content, &lockfile); err != nil {
@@ -1171,47 +1296,19 @@ func (s *Scanner) scanPackageLockJSON(lockPath string) {
 		if pkgPath == "" {
 			continue
 		}
-		// Extract package name from path (e.g., "node_modules/@scope/name" -> "@scope/name")
-		pkgName := strings.TrimPrefix(pkgPath, "node_modules/")
-		if strings.HasPrefix(pkgName, "@") {
-			parts := strings.SplitN(pkgName, "/", 2)
-			if len(parts) == 2 {
-				scope := parts[0]
-				if s.scopes[scope] && s.compromisedScope[scope] != nil && s.compromisedScope[scope][parts[1]] {
-					s.addFinding(report.FindingLockfileCompromised,
-						fmt.Sprintf("Lockfile contains compromised package: %s", pkgName),
-						lockPath)
-					s.log("    [!] LOCKFILE: Compromised package %s in %s", pkgName, lockPath)
-				}
-			}
-		} else if s.compromisedPkgs[pkgName] {
-			s.addFinding(report.FindingLockfileCompromised,
-				fmt.Sprintf("Lockfile contains compromised package: %s", pkgName),
-				lockPath)
-			s.log("    [!] LOCKFILE: Compromised package %s in %s", pkgName, lockPath)
+		pkgName := packageNameFromPackageLockPath(pkgPath)
+		if pkgName == "" {
+			continue
 		}
+		var pkgMeta struct {
+			Version string `json:"version"`
+		}
+		_ = json.Unmarshal(lockfile.Packages[pkgPath], &pkgMeta)
+		s.addLockfileFindingIfCompromised(pkgName, pkgMeta.Version, lockPath)
 	}
 
 	// Legacy format (npm v6): dependencies field
-	for pkgName := range lockfile.Dependencies {
-		if strings.HasPrefix(pkgName, "@") {
-			parts := strings.SplitN(pkgName, "/", 2)
-			if len(parts) == 2 {
-				scope := parts[0]
-				if s.scopes[scope] && s.compromisedScope[scope] != nil && s.compromisedScope[scope][parts[1]] {
-					s.addFinding(report.FindingLockfileCompromised,
-						fmt.Sprintf("Lockfile contains compromised package: %s", pkgName),
-						lockPath)
-					s.log("    [!] LOCKFILE: Compromised package %s in %s", pkgName, lockPath)
-				}
-			}
-		} else if s.compromisedPkgs[pkgName] {
-			s.addFinding(report.FindingLockfileCompromised,
-				fmt.Sprintf("Lockfile contains compromised package: %s", pkgName),
-				lockPath)
-			s.log("    [!] LOCKFILE: Compromised package %s in %s", pkgName, lockPath)
-		}
-	}
+	s.scanLegacyPackageLockDependencies(lockfile.Dependencies, lockPath)
 }
 
 // scanYarnLock scans a yarn.lock file for compromised packages.
@@ -1221,60 +1318,32 @@ func (s *Scanner) scanYarnLock(lockPath string) {
 		return
 	}
 
-	// yarn.lock uses a custom format. We scan for package names at the start of lines.
-	// Format: "package-name@version:" or "@scope/name@version:"
+	// yarn.lock entries are block-based. The key line holds selectors (often
+	// version ranges), while the resolved package version appears on a later
+	// `version "x.y.z"` line. We use the resolved version for matching.
 	lines := strings.SplitSeq(string(content), "\n")
+	var currentPackages []string
 	for line := range lines {
 		line = strings.TrimSpace(line)
 		if line == "" || strings.HasPrefix(line, "#") {
 			continue
 		}
 
-		// Check if line defines a package (ends with :)
-		if !strings.HasSuffix(line, ":") {
+		if strings.HasSuffix(line, ":") {
+			currentPackages = parseYarnLockHeaderPackages(strings.Trim(line, "\":"))
+			continue
+		}
+		if len(currentPackages) == 0 || !strings.HasPrefix(line, "version ") {
 			continue
 		}
 
-		// Remove quotes and trailing colon
-		line = strings.Trim(line, "\":")
-
-		// Extract package name (before @version)
-		var pkgName string
-		if strings.HasPrefix(line, "@") {
-			// Scoped package: @scope/name@version
-			parts := strings.SplitN(line, "@", 3)
-			if len(parts) >= 2 {
-				pkgName = "@" + parts[1]
-			}
-		} else {
-			// Unscoped: name@version
-			parts := strings.SplitN(line, "@", 2)
-			if len(parts) >= 1 {
-				pkgName = parts[0]
-			}
+		version := strings.TrimSpace(strings.TrimPrefix(line, "version "))
+		version = strings.Trim(version, "\"")
+		for _, pkgName := range currentPackages {
+			s.addLockfileFindingIfCompromised(pkgName, version, lockPath)
 		}
-
-		if pkgName == "" {
-			continue
-		}
-
-		if strings.HasPrefix(pkgName, "@") {
-			parts := strings.SplitN(pkgName, "/", 2)
-			if len(parts) == 2 {
-				scope := parts[0]
-				if s.scopes[scope] && s.compromisedScope[scope] != nil && s.compromisedScope[scope][parts[1]] {
-					s.addFinding(report.FindingLockfileCompromised,
-						fmt.Sprintf("Lockfile contains compromised package: %s", pkgName),
-						lockPath)
-					s.log("    [!] LOCKFILE: Compromised package %s in %s", pkgName, lockPath)
-				}
-			}
-		} else if s.compromisedPkgs[pkgName] {
-			s.addFinding(report.FindingLockfileCompromised,
-				fmt.Sprintf("Lockfile contains compromised package: %s", pkgName),
-				lockPath)
-			s.log("    [!] LOCKFILE: Compromised package %s in %s", pkgName, lockPath)
-		}
+		// One resolved version line per block.
+		currentPackages = nil
 	}
 }
 
@@ -1323,22 +1392,138 @@ func (s *Scanner) scanPnpmLock(lockPath string) {
 			continue
 		}
 
-		if strings.HasPrefix(pkgName, "@") {
-			parts := strings.SplitN(pkgName, "/", 2)
-			if len(parts) == 2 {
-				scope := parts[0]
-				if s.scopes[scope] && s.compromisedScope[scope] != nil && s.compromisedScope[scope][parts[1]] {
-					s.addFinding(report.FindingLockfileCompromised,
-						fmt.Sprintf("Lockfile contains compromised package: %s", pkgName),
-						lockPath)
-					s.log("    [!] LOCKFILE: Compromised package %s in %s", pkgName, lockPath)
-				}
-			}
-		} else if s.compromisedPkgs[pkgName] {
-			s.addFinding(report.FindingLockfileCompromised,
-				fmt.Sprintf("Lockfile contains compromised package: %s", pkgName),
-				lockPath)
-			s.log("    [!] LOCKFILE: Compromised package %s in %s", pkgName, lockPath)
+		s.addLockfileFindingIfCompromised(pkgName, versionFromLockKey(line, pkgName), lockPath)
+	}
+}
+
+type packageLockDep struct {
+	Version      string                    `json:"version"`
+	Dependencies map[string]packageLockDep `json:"dependencies,omitempty"`
+}
+
+func (s *Scanner) scanLegacyPackageLockDependencies(deps map[string]packageLockDep, lockPath string) {
+	for pkgName, dep := range deps {
+		s.addLockfileFindingIfCompromised(pkgName, dep.Version, lockPath)
+		if len(dep.Dependencies) > 0 {
+			s.scanLegacyPackageLockDependencies(dep.Dependencies, lockPath)
 		}
 	}
+}
+
+func (s *Scanner) addLockfileFindingIfCompromised(pkgName, version, lockPath string) {
+	if pkgName == "" {
+		return
+	}
+	if !s.isCompromisedPackageVersion(pkgName, version) {
+		return
+	}
+	s.addFinding(report.FindingLockfileCompromised,
+		fmt.Sprintf("Lockfile contains compromised package: %s", pkgName),
+		lockPath)
+	s.log("    [!] LOCKFILE: Compromised package %s in %s", pkgName, lockPath)
+}
+
+func packageNameFromPackageLockPath(pkgPath string) string {
+	parts := strings.Split(pkgPath, "/")
+	for i := len(parts) - 1; i >= 0; i-- {
+		if parts[i] != "node_modules" {
+			continue
+		}
+		if i+1 >= len(parts) {
+			return ""
+		}
+		if strings.HasPrefix(parts[i+1], "@") {
+			if i+2 >= len(parts) {
+				return ""
+			}
+			return parts[i+1] + "/" + parts[i+2]
+		}
+		return parts[i+1]
+	}
+	return ""
+}
+
+func versionFromLockKey(key, pkgName string) string {
+	if pkgName == "" {
+		return ""
+	}
+	key = strings.TrimSpace(strings.TrimSuffix(key, ":"))
+
+	if strings.HasPrefix(key, "@") {
+		marker := pkgName + "@"
+		if idx := strings.LastIndex(key, marker); idx >= 0 {
+			return normalizePackageVersion(key[idx+len(marker):])
+		}
+		return ""
+	}
+
+	if version, ok := strings.CutPrefix(key, pkgName+"@"); ok {
+		return normalizePackageVersion(version)
+	}
+	return ""
+}
+
+func parseYarnLockHeaderPackages(header string) []string {
+	seen := make(map[string]bool)
+	var pkgs []string
+	for _, selector := range strings.Split(header, ",") {
+		selector = strings.TrimSpace(strings.Trim(selector, "\""))
+		if selector == "" {
+			continue
+		}
+		pkgName := yarnPackageNameFromSelector(selector)
+		if pkgName == "" || seen[pkgName] {
+			continue
+		}
+		seen[pkgName] = true
+		pkgs = append(pkgs, pkgName)
+	}
+	return pkgs
+}
+
+func yarnPackageNameFromSelector(selector string) string {
+	if strings.HasPrefix(selector, "@") {
+		parts := strings.SplitN(selector, "@", 3)
+		if len(parts) >= 2 {
+			return "@" + parts[1]
+		}
+		return ""
+	}
+	parts := strings.SplitN(selector, "@", 2)
+	if len(parts) >= 1 {
+		return parts[0]
+	}
+	return ""
+}
+
+func (s *Scanner) readPackageVersion(pkgDir string) string {
+	data, err := os.ReadFile(filepath.Join(pkgDir, "package.json"))
+	if err != nil {
+		return ""
+	}
+	var meta struct {
+		Version string `json:"version"`
+	}
+	if err := json.Unmarshal(data, &meta); err != nil {
+		return ""
+	}
+	return normalizePackageVersion(meta.Version)
+}
+
+func pathHasDirSegment(path, segment string) bool {
+	return pathDirSegmentCount(path, segment) > 0
+}
+
+func pathDirSegmentCount(path, segment string) int {
+	if segment == "" {
+		return 0
+	}
+	normalized := filepath.ToSlash(filepath.Clean(path))
+	count := 0
+	for _, part := range strings.Split(normalized, "/") {
+		if part == segment {
+			count++
+		}
+	}
+	return count
 }

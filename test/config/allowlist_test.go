@@ -125,10 +125,10 @@ func TestIsPackageAllowed_GlobPatterns(t *testing.T) {
 		{"@angular/common", true},
 		{"css-loader", true},
 		{"babel-loader", true},
-		{"@babel/core", false},      // Not matching @cypress/* or @angular/*
-		{"cypress", false},           // Not scoped
-		{"loader", false},            // Doesn't end with -loader
-		{"loader-utils", false},      // Has -loader in middle, not end
+		{"@babel/core", false},  // Not matching @cypress/* or @angular/*
+		{"cypress", false},      // Not scoped
+		{"loader", false},       // Doesn't end with -loader
+		{"loader-utils", false}, // Has -loader in middle, not end
 	}
 
 	for _, tt := range tests {
@@ -197,7 +197,7 @@ func TestIsFindingTypeDisabled(t *testing.T) {
 	}{
 		{report.FindingCredentialFile, true},
 		{report.FindingPostinstallHook, true},
-		{report.FindingEnvExfil, true},  // Case insensitive match
+		{report.FindingEnvExfil, true}, // Case insensitive match
 		{report.FindingNodeModules, false},
 		{report.FindingMalwareHash, false},
 		{report.FindingGitBranch, false},
@@ -300,6 +300,35 @@ func TestShouldSkipFinding_CombinedRules(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := allowlist.ShouldSkipFinding(tt.ft, tt.indicator, tt.location); got != tt.want {
 				t.Errorf("ShouldSkipFinding() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestIsPathAllowed_GlobWildcardsAndMultipleDoubleStars(t *testing.T) {
+	allowlist := &config.Allowlist{
+		AllowPaths: []string{
+			"**/*.min.js",
+			"**/node_modules/**/cypress/**",
+			"**/vendor/*.js",
+		},
+	}
+
+	tests := []struct {
+		path string
+		want bool
+	}{
+		{"/project/dist/app.min.js", true},
+		{"/project/dist/app.js", false},
+		{"/project/node_modules/a/node_modules/cypress/lib/index.js", true},
+		{"/project/vendor/util.js", true},
+		{"/project/vendor/nested/util.js", false}, // single-segment * only
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.path, func(t *testing.T) {
+			if got := allowlist.IsPathAllowed(tt.path); got != tt.want {
+				t.Errorf("IsPathAllowed(%q) = %v, want %v", tt.path, got, tt.want)
 			}
 		})
 	}

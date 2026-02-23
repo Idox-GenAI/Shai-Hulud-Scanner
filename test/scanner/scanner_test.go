@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	pkghash "shai-hulud-scanner/pkg/hash"
 	"shai-hulud-scanner/pkg/ioc"
 	"shai-hulud-scanner/pkg/report"
 	"shai-hulud-scanner/pkg/scanner"
@@ -46,6 +47,10 @@ func TestDefaultConfig(t *testing.T) {
 }
 
 func TestRunEmptyDirectory(t *testing.T) {
+	origURLs := append([]string(nil), ioc.PackageFeedURLs...)
+	defer func() { ioc.PackageFeedURLs = origURLs }()
+	ioc.PackageFeedURLs = nil
+
 	tmpDir := t.TempDir()
 	var buf bytes.Buffer
 
@@ -67,9 +72,8 @@ func TestRunEmptyDirectory(t *testing.T) {
 	if rpt == nil {
 		t.Fatal("Run() returned nil report")
 	}
-	output := buf.String()
-	if strings.Contains(output, "[!]") {
-		t.Errorf("Run() on empty directory should not report findings, output: %s", output)
+	if rpt.HasFindings() {
+		t.Errorf("Run() on empty directory should not report findings, got: %+v", rpt.Findings)
 	}
 }
 
@@ -257,9 +261,15 @@ func TestFeedCaching_FreshCSVCacheParsesPackageFieldAndSkipsHeader(t *testing.T)
 	if err := os.MkdirAll(scopedDir, 0o755); err != nil {
 		t.Fatalf("failed to create scoped package dir: %v", err)
 	}
+	if err := os.WriteFile(filepath.Join(scopedDir, "package.json"), []byte(`{"name":"@evil/scopepkg","version":"1.2.3"}`), 0o644); err != nil {
+		t.Fatalf("failed to write scoped package.json: %v", err)
+	}
 	unscopedDir := filepath.Join(tmpDir, "node_modules", "bad-unscoped")
 	if err := os.MkdirAll(unscopedDir, 0o755); err != nil {
 		t.Fatalf("failed to create unscoped package dir: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(unscopedDir, "package.json"), []byte(`{"name":"bad-unscoped","version":"0.0.1"}`), 0o644); err != nil {
+		t.Fatalf("failed to write unscoped package.json: %v", err)
 	}
 
 	// Should not be used because cache is fresh.
@@ -646,5 +656,389 @@ func TestParallelScansCompleteWithoutRace(t *testing.T) {
 	// Just verify scan completed without panics or deadlocks
 	if rpt == nil {
 		t.Fatal("Run() returned nil report")
+	}
+}
+
+func TestNodeModulesVersionConstraints_RespectPackageVersion(t *testing.T) {
+	origURLs := append([]string(nil), ioc.PackageFeedURLs...)
+	defer func() { ioc.PackageFeedURLs = origURLs }()
+	ioc.PackageFeedURLs = []string{"https://example.invalid/feed.csv"}
+
+	tmpDir := t.TempDir()
+	cacheFile := filepath.Join(tmpDir, "compromised-cache.txt")
+	cacheCSV := "Package,Version\nversioned-pkg,= 1.2.3\n"
+	if err := os.WriteFile(cacheFile, []byte(cacheCSV), 0o644); err != nil {
+		t.Fatalf("failed to write cache: %v", err)
+	}
+	now := time.Now()
+	if err := os.Chtimes(cacheFile, now, now); err != nil {
+		t.Fatalf("failed to set cache mtime: %v", err)
+	}
+
+	pkgDir := filepath.Join(tmpDir, "node_modules", "versioned-pkg")
+	if err := os.MkdirAll(pkgDir, 0o755); err != nil {
+		t.Fatalf("failed to create package dir: %v", err)
+	}
+	writePkgJSON := func(version string) {
+		t.Helper()
+		content := fmt.Sprintf(`{"name":"versioned-pkg","version":"%s"}`, version)
+		if err := os.WriteFile(filepath.Join(pkgDir, "package.json"), []byte(content), 0o644); err != nil {
+			t.Fatalf("failed to write package.json: %v", err)
+		}
+	}
+
+	run := func() *report.Report {
+		t.Helper()
+		var buf bytes.Buffer
+		cfg := scanner.DefaultConfig()
+		cfg.RootPaths = []string{tmpDir}
+		cfg.ScanMode = scanner.ScanModeQuick
+		cfg.NoBanner = true
+		cfg.FilesOnly = true
+		cfg.CacheFile = cacheFile
+		cfg.ReportPath = filepath.Join(tmpDir, "report.txt")
+		cfg.Output = &buf
+		s := scanner.New(cfg)
+		rpt, err := s.Run()
+		if err != nil {
+			t.Fatalf("Run() error = %v", err)
+		}
+		return rpt
+	}
+
+	writePkgJSON("9.9.9")
+	rpt := run()
+	if got := len(rpt.GetFindingsByType(report.FindingNodeModules)); got != 0 {
+		t.Fatalf("non-matching version should not be flagged, got %d findings: %+v", got, rpt.Findings)
+	}
+
+	writePkgJSON("1.2.3")
+	rpt = run()
+	if got := len(rpt.GetFindingsByType(report.FindingNodeModules)); got != 1 {
+		t.Fatalf("matching version should be flagged once, got %d findings: %+v", got, rpt.Findings)
+	}
+}
+
+func TestPackageLockV3NestedPathDetectionAndVersionMatch(t *testing.T) {
+	origURLs := append([]string(nil), ioc.PackageFeedURLs...)
+	defer func() { ioc.PackageFeedURLs = origURLs }()
+	ioc.PackageFeedURLs = []string{"https://example.invalid/feed.csv"}
+
+	tmpDir := t.TempDir()
+	cacheFile := filepath.Join(tmpDir, "compromised-cache.txt")
+	cacheCSV := "Package,Version\n@evil/nested-pkg,= 1.2.3\n"
+	if err := os.WriteFile(cacheFile, []byte(cacheCSV), 0o644); err != nil {
+		t.Fatalf("failed to write cache: %v", err)
+	}
+	now := time.Now()
+	if err := os.Chtimes(cacheFile, now, now); err != nil {
+		t.Fatalf("failed to set cache mtime: %v", err)
+	}
+
+	lockfile := `{
+  "lockfileVersion": 3,
+  "packages": {
+    "": {"name": "app", "version": "1.0.0"},
+    "node_modules/parent": {"version": "1.0.0"},
+    "node_modules/parent/node_modules/@evil/nested-pkg": {"version": "1.2.3"}
+  }
+}`
+	if err := os.WriteFile(filepath.Join(tmpDir, "package-lock.json"), []byte(lockfile), 0o644); err != nil {
+		t.Fatalf("failed to write package-lock.json: %v", err)
+	}
+
+	var buf bytes.Buffer
+	cfg := scanner.DefaultConfig()
+	cfg.RootPaths = []string{tmpDir}
+	cfg.ScanMode = scanner.ScanModeQuick
+	cfg.NoBanner = true
+	cfg.FilesOnly = false
+	cfg.CacheFile = cacheFile
+	cfg.ReportPath = filepath.Join(tmpDir, "report.txt")
+	cfg.Output = &buf
+
+	rpt, err := scanner.New(cfg).Run()
+	if err != nil {
+		t.Fatalf("Run() error = %v", err)
+	}
+
+	found := false
+	for _, f := range rpt.GetFindingsByType(report.FindingLockfileCompromised) {
+		if strings.Contains(f.Indicator, "@evil/nested-pkg") {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Fatalf("expected nested npm v7 package-lock package to be detected, findings: %+v", rpt.Findings)
+	}
+}
+
+func TestPackageLockLegacyNestedDependenciesAreScanned(t *testing.T) {
+	origURLs := append([]string(nil), ioc.PackageFeedURLs...)
+	defer func() { ioc.PackageFeedURLs = origURLs }()
+	ioc.PackageFeedURLs = []string{"https://example.invalid/feed.csv"}
+
+	tmpDir := t.TempDir()
+	cacheFile := filepath.Join(tmpDir, "compromised-cache.txt")
+	cacheCSV := "Package,Version\nlegacy-bad,= 2.3.4\n"
+	if err := os.WriteFile(cacheFile, []byte(cacheCSV), 0o644); err != nil {
+		t.Fatalf("failed to write cache: %v", err)
+	}
+	now := time.Now()
+	if err := os.Chtimes(cacheFile, now, now); err != nil {
+		t.Fatalf("failed to set cache mtime: %v", err)
+	}
+
+	lockfile := `{
+  "lockfileVersion": 1,
+  "dependencies": {
+    "parent": {
+      "version": "1.0.0",
+      "dependencies": {
+        "legacy-bad": {
+          "version": "2.3.4"
+        }
+      }
+    }
+  }
+}`
+	if err := os.WriteFile(filepath.Join(tmpDir, "package-lock.json"), []byte(lockfile), 0o644); err != nil {
+		t.Fatalf("failed to write package-lock.json: %v", err)
+	}
+
+	var buf bytes.Buffer
+	cfg := scanner.DefaultConfig()
+	cfg.RootPaths = []string{tmpDir}
+	cfg.ScanMode = scanner.ScanModeQuick
+	cfg.NoBanner = true
+	cfg.FilesOnly = false
+	cfg.CacheFile = cacheFile
+	cfg.ReportPath = filepath.Join(tmpDir, "report.txt")
+	cfg.Output = &buf
+
+	rpt, err := scanner.New(cfg).Run()
+	if err != nil {
+		t.Fatalf("Run() error = %v", err)
+	}
+
+	found := false
+	for _, f := range rpt.GetFindingsByType(report.FindingLockfileCompromised) {
+		if strings.Contains(f.Indicator, "legacy-bad") {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Fatalf("expected nested npm v6 dependency to be detected, findings: %+v", rpt.Findings)
+	}
+}
+
+func TestLockfileVersionConstraints_DoNotFlagNonMatchingVersion(t *testing.T) {
+	origURLs := append([]string(nil), ioc.PackageFeedURLs...)
+	defer func() { ioc.PackageFeedURLs = origURLs }()
+	ioc.PackageFeedURLs = []string{"https://example.invalid/feed.csv"}
+
+	tmpDir := t.TempDir()
+	cacheFile := filepath.Join(tmpDir, "compromised-cache.txt")
+	cacheCSV := "Package,Version\nversioned-bad,= 1.2.3\n"
+	if err := os.WriteFile(cacheFile, []byte(cacheCSV), 0o644); err != nil {
+		t.Fatalf("failed to write cache: %v", err)
+	}
+	now := time.Now()
+	if err := os.Chtimes(cacheFile, now, now); err != nil {
+		t.Fatalf("failed to set cache mtime: %v", err)
+	}
+
+	lockfile := `{
+  "lockfileVersion": 3,
+  "packages": {
+    "": {"name": "app", "version": "1.0.0"},
+    "node_modules/versioned-bad": {"version": "9.9.9"}
+  }
+}`
+	if err := os.WriteFile(filepath.Join(tmpDir, "package-lock.json"), []byte(lockfile), 0o644); err != nil {
+		t.Fatalf("failed to write package-lock.json: %v", err)
+	}
+
+	var buf bytes.Buffer
+	cfg := scanner.DefaultConfig()
+	cfg.RootPaths = []string{tmpDir}
+	cfg.ScanMode = scanner.ScanModeQuick
+	cfg.NoBanner = true
+	cfg.FilesOnly = false
+	cfg.CacheFile = cacheFile
+	cfg.ReportPath = filepath.Join(tmpDir, "report.txt")
+	cfg.Output = &buf
+
+	rpt, err := scanner.New(cfg).Run()
+	if err != nil {
+		t.Fatalf("Run() error = %v", err)
+	}
+
+	for _, f := range rpt.GetFindingsByType(report.FindingLockfileCompromised) {
+		if strings.Contains(f.Indicator, "versioned-bad") {
+			t.Fatalf("non-matching version should not be flagged, findings: %+v", rpt.Findings)
+		}
+	}
+}
+
+func TestYarnLockVersionConstraints_UseResolvedVersionLine(t *testing.T) {
+	origURLs := append([]string(nil), ioc.PackageFeedURLs...)
+	defer func() { ioc.PackageFeedURLs = origURLs }()
+	ioc.PackageFeedURLs = []string{"https://example.invalid/feed.csv"}
+
+	tmpDir := t.TempDir()
+	cacheFile := filepath.Join(tmpDir, "compromised-cache.txt")
+	cacheCSV := strings.Join([]string{
+		"Package,Version",
+		"yarn-good,= 1.2.3",
+		"yarn-bad,= 2.0.0",
+	}, "\n")
+	if err := os.WriteFile(cacheFile, []byte(cacheCSV), 0o644); err != nil {
+		t.Fatalf("failed to write cache: %v", err)
+	}
+	now := time.Now()
+	if err := os.Chtimes(cacheFile, now, now); err != nil {
+		t.Fatalf("failed to set cache mtime: %v", err)
+	}
+
+	yarnLock := `# yarn lockfile v1
+"yarn-good@^1.0.0", "yarn-good@~1.2.0":
+  version "1.2.3"
+  resolved "https://registry.yarnpkg.com/yarn-good/-/yarn-good-1.2.3.tgz"
+
+"yarn-bad@^1.0.0":
+  version "9.9.9"
+  resolved "https://registry.yarnpkg.com/yarn-bad/-/yarn-bad-9.9.9.tgz"
+`
+	if err := os.WriteFile(filepath.Join(tmpDir, "yarn.lock"), []byte(yarnLock), 0o644); err != nil {
+		t.Fatalf("failed to write yarn.lock: %v", err)
+	}
+
+	var buf bytes.Buffer
+	cfg := scanner.DefaultConfig()
+	cfg.RootPaths = []string{tmpDir}
+	cfg.ScanMode = scanner.ScanModeQuick
+	cfg.NoBanner = true
+	cfg.FilesOnly = false
+	cfg.CacheFile = cacheFile
+	cfg.ReportPath = filepath.Join(tmpDir, "report.txt")
+	cfg.Output = &buf
+
+	rpt, err := scanner.New(cfg).Run()
+	if err != nil {
+		t.Fatalf("Run() error = %v", err)
+	}
+
+	lockFindings := rpt.GetFindingsByType(report.FindingLockfileCompromised)
+	foundGood := false
+	foundBad := false
+	for _, f := range lockFindings {
+		if strings.Contains(f.Indicator, "yarn-good") {
+			foundGood = true
+		}
+		if strings.Contains(f.Indicator, "yarn-bad") {
+			foundBad = true
+		}
+	}
+	if !foundGood {
+		t.Fatalf("expected yarn-good to be detected using resolved version line, findings: %+v", lockFindings)
+	}
+	if foundBad {
+		t.Fatalf("did not expect yarn-bad to be detected (resolved version mismatch), findings: %+v", lockFindings)
+	}
+}
+
+func TestFullModeHashScan_IncludesNodeModules(t *testing.T) {
+	origURLs := append([]string(nil), ioc.PackageFeedURLs...)
+	defer func() { ioc.PackageFeedURLs = origURLs }()
+	ioc.PackageFeedURLs = nil
+
+	content := []byte("unit-test-malware-payload")
+	sha, err := pkghash.ComputeSHA256FromReader(bytes.NewReader(content))
+	if err != nil {
+		t.Fatalf("failed to hash test payload: %v", err)
+	}
+	origDesc, existed := ioc.MaliciousSHA256[sha]
+	ioc.MaliciousSHA256[sha] = "test payload"
+	defer func() {
+		if existed {
+			ioc.MaliciousSHA256[sha] = origDesc
+		} else {
+			delete(ioc.MaliciousSHA256, sha)
+		}
+	}()
+
+	tmpDir := t.TempDir()
+	jsPath := filepath.Join(tmpDir, "node_modules", "dep", "payload.js")
+	if err := os.MkdirAll(filepath.Dir(jsPath), 0o755); err != nil {
+		t.Fatalf("failed to create dirs: %v", err)
+	}
+	if err := os.WriteFile(jsPath, content, 0o644); err != nil {
+		t.Fatalf("failed to write payload: %v", err)
+	}
+
+	var buf bytes.Buffer
+	cfg := scanner.DefaultConfig()
+	cfg.RootPaths = []string{tmpDir}
+	cfg.ScanMode = scanner.ScanModeFull
+	cfg.NoBanner = true
+	cfg.FilesOnly = false
+	cfg.CacheFile = ""
+	cfg.ReportPath = filepath.Join(tmpDir, "report.txt")
+	cfg.Output = &buf
+
+	rpt, err := scanner.New(cfg).Run()
+	if err != nil {
+		t.Fatalf("Run() error = %v", err)
+	}
+
+	found := false
+	for _, f := range rpt.GetFindingsByType(report.FindingMalwareHash) {
+		if f.Location == jsPath {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Fatalf("expected hash detection inside node_modules in full mode, findings: %+v", rpt.Findings)
+	}
+}
+
+func TestQuickModeEnvCredentialFinding_NotDuplicated(t *testing.T) {
+	origURLs := append([]string(nil), ioc.PackageFeedURLs...)
+	defer func() { ioc.PackageFeedURLs = origURLs }()
+	ioc.PackageFeedURLs = nil
+
+	tmpDir := t.TempDir()
+	envPath := filepath.Join(tmpDir, ".env")
+	if err := os.WriteFile(envPath, []byte("TOKEN=test\n"), 0o644); err != nil {
+		t.Fatalf("failed to write .env: %v", err)
+	}
+
+	var buf bytes.Buffer
+	cfg := scanner.DefaultConfig()
+	cfg.RootPaths = []string{tmpDir}
+	cfg.ScanMode = scanner.ScanModeQuick
+	cfg.NoBanner = true
+	cfg.FilesOnly = false
+	cfg.CacheFile = ""
+	cfg.ReportPath = filepath.Join(tmpDir, "report.txt")
+	cfg.Output = &buf
+
+	rpt, err := scanner.New(cfg).Run()
+	if err != nil {
+		t.Fatalf("Run() error = %v", err)
+	}
+
+	count := 0
+	for _, f := range rpt.GetFindingsByType(report.FindingCredentialFile) {
+		if f.Location == envPath {
+			count++
+		}
+	}
+	if count != 1 {
+		t.Fatalf("expected exactly one credential-file finding for root .env, got %d; findings: %+v", count, rpt.Findings)
 	}
 }

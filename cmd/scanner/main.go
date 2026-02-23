@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"shai-hulud-scanner/pkg/config"
+	"shai-hulud-scanner/pkg/report"
 	"shai-hulud-scanner/pkg/scanner"
 )
 
@@ -59,6 +60,30 @@ func printUsage() {
 	fmt.Println("  shai-hulud-scanner --warn-only /path        # Only fail on high+ severity")
 	fmt.Println("  shai-hulud-scanner --config allowlist.json  # Use allowlist configuration")
 	fmt.Println()
+}
+
+func exitCodeForReport(rpt *report.Report, strict, warnOnly, reportWriteFailed bool) int {
+	if rpt == nil {
+		if reportWriteFailed {
+			return 1
+		}
+		return 0
+	}
+
+	// Critical findings always win.
+	if rpt.IsCritical() {
+		return 2
+	}
+	if strict && rpt.HasFindings() {
+		return 1
+	}
+	if rpt.HasHighSeverity() && !warnOnly {
+		return 1
+	}
+	if reportWriteFailed {
+		return 1
+	}
+	return 0
 }
 
 func main() {
@@ -186,8 +211,10 @@ func main() {
 
 	fmt.Println()
 	fmt.Printf("[*] Writing detailed report to: %s\n", resolvedReportPath)
+	reportWriteFailed := false
 	if err := rpt.WriteToFile(resolvedReportPath); err != nil {
 		fmt.Fprintf(os.Stderr, "Error writing report: %v\n", err)
+		reportWriteFailed = true
 	} else {
 		fmt.Println("[*] Report written successfully.")
 	}
@@ -198,25 +225,5 @@ func main() {
 	fmt.Println("============================================")
 	fmt.Println()
 
-	// Exit code logic based on severity and mode flags
-	// Critical findings always exit 2 (confirmed malware)
-	if rpt.IsCritical() {
-		os.Exit(2)
-	}
-
-	// If strict mode: exit 1 on ANY finding (old behavior)
-	if *strict && rpt.HasFindings() {
-		os.Exit(1)
-	}
-
-	// Default behavior: exit 1 only on high-severity findings
-	// Warnings alone = exit 0
-	if rpt.HasHighSeverity() {
-		// Unless warn-only mode is set, which ignores high severity too
-		if !*warnOnly {
-			os.Exit(1)
-		}
-	}
-
-	// Exit 0 for clean scan or warnings-only (default behavior)
+	os.Exit(exitCodeForReport(rpt, *strict, *warnOnly, reportWriteFailed))
 }
