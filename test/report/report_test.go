@@ -314,8 +314,8 @@ func TestFindingTypes(t *testing.T) {
 
 func TestSeverityClassification(t *testing.T) {
 	tests := []struct {
-		findingType    report.FindingType
-		expectedSev    report.FindingSeverity
+		findingType report.FindingType
+		expectedSev report.FindingSeverity
 	}{
 		{report.FindingMalwareHash, report.SeverityCritical},
 		{report.FindingMaliciousRunner, report.SeverityCritical},
