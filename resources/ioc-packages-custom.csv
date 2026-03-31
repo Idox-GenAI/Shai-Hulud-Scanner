@@ -44,3 +44,5 @@ uuindex,= 13.1.0
 vitetest-lint,= 4.1.21
 windowston,= 3.19.2
 zoddle,= 4.4.2
+axios,= 1.14.1
+axios,= 0.30.4
