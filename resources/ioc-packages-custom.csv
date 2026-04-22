@@ -46,3 +46,9 @@ windowston,= 3.19.2
 zoddle,= 4.4.2
 axios,= 1.14.1
 axios,= 0.30.4
+@automagik/genie,= 4.260421.33 || = 4.260421.34 || = 4.260421.35 || = 4.260421.36 || = 4.260421.37 || = 4.260421.38 || = 4.260421.39
+pgserve,= 1.1.11 || = 1.1.12 || = 1.1.13
+@fairwords/websocket,= 1.0.38 || = 1.0.39
+@fairwords/loopback-connector-es,= 1.4.3 || = 1.4.4
+@openwebconcept/design-tokens,= 1.0.3
+@openwebconcept/theme-owc,= 1.0.3
