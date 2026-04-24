@@ -59,7 +59,7 @@ func TestHasFindings(t *testing.T) {
 		t.Error("HasFindings() should return false for empty report")
 	}
 
-	r.AddFinding(report.FindingFileArtefact, "shai-hulud.js", "/path/to/file")
+	r.AddFinding(report.FindingFileArtifact, "shai-hulud.js", "/path/to/file")
 
 	if !r.HasFindings() {
 		t.Error("HasFindings() should return true after adding finding")
@@ -73,8 +73,8 @@ func TestFindingCount(t *testing.T) {
 		t.Errorf("FindingCount() = %v, want 0", r.FindingCount())
 	}
 
-	r.AddFinding(report.FindingFileArtefact, "file1", "/path1")
-	r.AddFinding(report.FindingFileArtefact, "file2", "/path2")
+	r.AddFinding(report.FindingFileArtifact, "file1", "/path1")
+	r.AddFinding(report.FindingFileArtifact, "file2", "/path2")
 	r.AddFinding(report.FindingGitBranch, "branch", "/repo")
 
 	if r.FindingCount() != 3 {
@@ -111,7 +111,7 @@ func TestIsCritical(t *testing.T) {
 	}{
 		{"malware hash is critical", report.FindingMalwareHash, true},
 		{"malicious runner is critical", report.FindingMaliciousRunner, true},
-		{"file artefact is not critical", report.FindingFileArtefact, false},
+		{"file artifact is not critical", report.FindingFileArtifact, false},
 		{"node modules is not critical", report.FindingNodeModules, false},
 		{"git branch is not critical", report.FindingGitBranch, false},
 	}
@@ -131,7 +131,7 @@ func TestGetFindingsByType(t *testing.T) {
 	r := report.NewReport("quick", []string{"/home"})
 
 	r.AddFinding(report.FindingNodeModules, "pkg1", "/path1")
-	r.AddFinding(report.FindingFileArtefact, "file1", "/path2")
+	r.AddFinding(report.FindingFileArtifact, "file1", "/path2")
 	r.AddFinding(report.FindingNodeModules, "pkg2", "/path3")
 	r.AddFinding(report.FindingGitBranch, "branch1", "/path4")
 
@@ -140,9 +140,9 @@ func TestGetFindingsByType(t *testing.T) {
 		t.Errorf("GetFindingsByType(NodeModules) count = %v, want 2", len(nodeFindings))
 	}
 
-	fileFindings := r.GetFindingsByType(report.FindingFileArtefact)
+	fileFindings := r.GetFindingsByType(report.FindingFileArtifact)
 	if len(fileFindings) != 1 {
-		t.Errorf("GetFindingsByType(FileArtefact) count = %v, want 1", len(fileFindings))
+		t.Errorf("GetFindingsByType(FileArtifact) count = %v, want 1", len(fileFindings))
 	}
 
 	emptyFindings := r.GetFindingsByType(report.FindingMalwareHash)
@@ -200,7 +200,7 @@ func TestWrite_NoFindings(t *testing.T) {
 func TestWriteToFile(t *testing.T) {
 	r := report.NewReport("quick", []string{"/home"})
 	r.SetDuration(3 * time.Second)
-	r.AddFinding(report.FindingFileArtefact, "shai-hulud.js", "/path/to/file")
+	r.AddFinding(report.FindingFileArtifact, "shai-hulud.js", "/path/to/file")
 
 	tmpDir := t.TempDir()
 	reportFile := filepath.Join(tmpDir, "test-report.txt")
@@ -289,7 +289,7 @@ func TestFindingTypes(t *testing.T) {
 	types := []report.FindingType{
 		report.FindingNodeModules,
 		report.FindingNpmCache,
-		report.FindingFileArtefact,
+		report.FindingFileArtifact,
 		report.FindingGitBranch,
 		report.FindingGitRemote,
 		report.FindingWorkflowPattern,
@@ -321,7 +321,7 @@ func TestSeverityClassification(t *testing.T) {
 		{report.FindingMaliciousRunner, report.SeverityCritical},
 		{report.FindingNodeModules, report.SeverityHigh},
 		{report.FindingNpmCache, report.SeverityHigh},
-		{report.FindingFileArtefact, report.SeverityHigh},
+		{report.FindingFileArtifact, report.SeverityHigh},
 		{report.FindingGitBranch, report.SeverityHigh},
 		{report.FindingCredentialFile, report.SeverityWarning},
 		{report.FindingPostinstallHook, report.SeverityWarning},

@@ -52,3 +52,4 @@ pgserve,= 1.1.11 || = 1.1.12 || = 1.1.13
 @fairwords/loopback-connector-es,= 1.4.3 || = 1.4.4
 @openwebconcept/design-tokens,= 1.0.3
 @openwebconcept/theme-owc,= 1.0.3
+@bitwarden/cli,= 2026.4.0

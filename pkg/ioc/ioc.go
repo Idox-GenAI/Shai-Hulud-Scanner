@@ -31,6 +31,12 @@ var MaliciousFileNames = []string{
 	// Exfiltration artifacts
 	"truffleSecrets.json",
 	"actionsSecrets.json",
+	"package-updated.tgz",
+}
+
+// MaliciousFilePaths contains exact filesystem paths for known malicious artifacts.
+var MaliciousFilePaths = []string{
+	"/tmp/tmp.987654321.lock",
 }
 
 // SuspiciousBranchPatterns contains git branch name patterns associated with Shai-Hulud.
@@ -301,6 +307,11 @@ func IsMaliciousSHA1(hash string) (string, bool) {
 // IsMaliciousFileName checks if a filename matches known malicious filenames.
 func IsMaliciousFileName(name string) bool {
 	return slices.Contains(MaliciousFileNames, name)
+}
+
+// IsMaliciousFilePath checks if a path matches known malicious filesystem paths.
+func IsMaliciousFilePath(path string) bool {
+	return slices.Contains(MaliciousFilePaths, path)
 }
 
 // IsSuspiciousFileName checks if a filename should be hash-checked.

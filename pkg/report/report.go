@@ -15,7 +15,7 @@ type FindingType string
 const (
 	FindingNodeModules         FindingType = "node_modules"
 	FindingNpmCache            FindingType = "npm-cache"
-	FindingFileArtefact        FindingType = "file-artefact"
+	FindingFileArtifact        FindingType = "file-artifact"
 	FindingGitBranch           FindingType = "git-branch"
 	FindingGitRemote           FindingType = "git-remote"
 	FindingWorkflowPattern     FindingType = "workflow-pattern"
@@ -48,7 +48,7 @@ var findingSeverityMap = map[FindingType]FindingSeverity{
 	FindingMaliciousRunner:     SeverityCritical,
 	FindingNodeModules:         SeverityHigh,
 	FindingNpmCache:            SeverityHigh,
-	FindingFileArtefact:        SeverityHigh,
+	FindingFileArtifact:        SeverityHigh,
 	FindingGitBranch:           SeverityHigh,
 	FindingGitRemote:           SeverityHigh,
 	FindingWorkflowPattern:     SeverityHigh,

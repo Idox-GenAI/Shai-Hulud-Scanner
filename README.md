@@ -31,7 +31,7 @@ The scanner performs the following checks:
 | Lockfile scanning | Yes | Yes | Detects compromised packages in `package-lock.json`, `yarn.lock`, `pnpm-lock.yaml` |
 | Compromised namespaces | Yes | Yes | Flags packages from known compromised npm scopes |
 | npm cache scan | No | Yes | Scans npm cache for compromised packages |
-| Malicious file artefacts | Yes | Yes | Detects known Shai-Hulud files (`shai-hulud.js`, `setup_bun.js`, etc.) |
+| Malicious file artifacts | Yes | Yes | Detects known Shai-Hulud files (`shai-hulud.js`, `setup_bun.js`, etc.) |
 | Git branch/remote analysis | Yes | Yes | Checks for suspicious branches and remotes |
 | GitHub Actions workflows | Yes | Yes | Scans for malicious workflow patterns |
 | Cloud credential exposure | Partial | Yes | Detects AWS/Azure/npm credential files |
@@ -197,7 +197,7 @@ Findings are classified into three severity levels:
 | `node_modules` | High | Known compromised package |
 | `npm-cache` | High | Known compromised package |
 | `lockfile-compromised` | High | Compromised package in lockfile |
-| `file-artefact` | High | Known malicious filename |
+| `file-artifact` | High | Known malicious filename |
 | `git-branch` | High | Specific Shai-Hulud IOC |
 | `git-remote` | High | Specific Shai-Hulud IOC |
 | `workflow-pattern` | High | Specific attack pattern |
@@ -380,7 +380,7 @@ NOTE: Only warnings were found. Common packages like core-js, cypress, and
 [!!] HIGH CONFIDENCE DETECTIONS: 2 (requires action)
   [node_modules] @example/malicious-pkg
          /project/node_modules/@example/malicious-pkg
-  [file-artefact] shai-hulud.js
+  [file-artifact] shai-hulud.js
          /project/.github/workflows/shai-hulud.js
 
 [!] WARNINGS: 1 (review recommended, may be false positives)

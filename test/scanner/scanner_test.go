@@ -109,6 +109,53 @@ func TestRunDetectsMaliciousFile(t *testing.T) {
 	}
 }
 
+func TestRunDetectsMaliciousFilePath(t *testing.T) {
+	origPaths := append([]string(nil), ioc.MaliciousFilePaths...)
+	defer func() { ioc.MaliciousFilePaths = origPaths }()
+
+	tmpDir := t.TempDir()
+	outsideDir := t.TempDir()
+	var buf bytes.Buffer
+
+	maliciousFile := filepath.Join(tmpDir, "tmp.987654321.lock")
+	outsideFile := filepath.Join(outsideDir, "tmp.987654321.lock")
+	ioc.MaliciousFilePaths = []string{maliciousFile, outsideFile}
+	if err := os.WriteFile(maliciousFile, []byte("malicious lock"), 0o644); err != nil {
+		t.Fatalf("Failed to create malicious file path: %v", err)
+	}
+	if err := os.WriteFile(outsideFile, []byte("outside root"), 0o644); err != nil {
+		t.Fatalf("Failed to create outside malicious file path: %v", err)
+	}
+
+	cfg := &scanner.Config{
+		RootPaths:  []string{tmpDir},
+		ScanMode:   scanner.ScanModeQuick,
+		ReportPath: filepath.Join(tmpDir, "report.txt"),
+		NoBanner:   true,
+		FilesOnly:  true,
+		CacheFile:  "",
+		Output:     &buf,
+	}
+
+	rpt, err := scanner.New(cfg).Run()
+	if err != nil {
+		t.Fatalf("Run() error = %v", err)
+	}
+
+	found := false
+	for _, f := range rpt.GetFindingsByType(report.FindingFileArtifact) {
+		if f.Indicator == maliciousFile && f.Location == maliciousFile {
+			found = true
+		}
+		if f.Indicator == outsideFile || f.Location == outsideFile {
+			t.Fatalf("did not expect out-of-root file path IOC finding for %s, findings: %+v", outsideFile, rpt.Findings)
+		}
+	}
+	if !found {
+		t.Fatalf("expected file path IOC finding for %s, findings: %+v", maliciousFile, rpt.Findings)
+	}
+}
+
 func TestFeedCaching_SaveAndLoadFromCache(t *testing.T) {
 	origURLs := append([]string(nil), ioc.PackageFeedURLs...)
 	defer func() { ioc.PackageFeedURLs = origURLs }()

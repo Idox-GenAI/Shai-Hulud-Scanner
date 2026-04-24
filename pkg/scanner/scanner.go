@@ -709,18 +709,28 @@ func (s *Scanner) scanMaliciousFiles() {
 			continue
 		}
 
+		for _, fpath := range ioc.MaliciousFilePaths {
+			if !pathWithinRoot(fpath, root) {
+				continue
+			}
+			if _, err := os.Stat(fpath); err == nil {
+				s.addFinding(report.FindingFileArtifact, fpath, fpath)
+				s.log("    [!] FOUND: %s", fpath)
+			}
+		}
+
 		if s.config.ScanMode == ScanModeQuick {
 			// Quick mode: check root and .github/workflows only
 			for _, fname := range ioc.MaliciousFileNames {
 				fpath := filepath.Join(root, fname)
 				if _, err := os.Stat(fpath); err == nil {
-					s.addFinding(report.FindingFileArtefact, fname, fpath)
+					s.addFinding(report.FindingFileArtifact, fname, fpath)
 					s.log("    [!] FOUND: %s at %s", fname, root)
 				}
 
 				wfPath := filepath.Join(root, ".github", "workflows", fname)
 				if _, err := os.Stat(wfPath); err == nil {
-					s.addFinding(report.FindingFileArtefact, fname, wfPath)
+					s.addFinding(report.FindingFileArtifact, fname, wfPath)
 					s.log("    [!] FOUND: %s at %s", fname, filepath.Join(root, ".github", "workflows"))
 				}
 			}
@@ -736,13 +746,29 @@ func (s *Scanner) scanMaliciousFiles() {
 					return nil
 				}
 				if malNames[d.Name()] {
-					s.addFinding(report.FindingFileArtefact, d.Name(), path)
+					s.addFinding(report.FindingFileArtifact, d.Name(), path)
 					s.log("    [!] FOUND: %s at %s", d.Name(), filepath.Dir(path))
 				}
 				return nil
 			})
 		}
 	}
+}
+
+func pathWithinRoot(path, root string) bool {
+	absPath, err := filepath.Abs(path)
+	if err != nil {
+		return false
+	}
+	absRoot, err := filepath.Abs(root)
+	if err != nil {
+		return false
+	}
+	rel, err := filepath.Rel(absRoot, absPath)
+	if err != nil {
+		return false
+	}
+	return rel == "." || (rel != ".." && !strings.HasPrefix(rel, ".."+string(filepath.Separator)))
 }
 
 func (s *Scanner) scanGit() {

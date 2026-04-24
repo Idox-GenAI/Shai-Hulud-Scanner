@@ -99,6 +99,7 @@ func TestIsMaliciousFileName(t *testing.T) {
 		{"setup_bun.js", "setup_bun.js", true},
 		{"bun_environment.js", "bun_environment.js", true},
 		{"discussion.yaml", "discussion.yaml", true},
+		{"package-updated.tgz", "package-updated.tgz", true},
 		{"normal.js", "normal.js", false},
 		{"index.js", "index.js", false},
 		{"empty", "", false},
@@ -108,6 +109,27 @@ func TestIsMaliciousFileName(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := ioc.IsMaliciousFileName(tt.filename); got != tt.want {
 				t.Errorf("IsMaliciousFileName(%q) = %v, want %v", tt.filename, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestIsMaliciousFilePath(t *testing.T) {
+	tests := []struct {
+		name string
+		path string
+		want bool
+	}{
+		{"known victim package lock", "/tmp/tmp.987654321.lock", true},
+		{"basename only is not path match", "tmp.987654321.lock", false},
+		{"normal path", "/tmp/normal.lock", false},
+		{"empty", "", false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := ioc.IsMaliciousFilePath(tt.path); got != tt.want {
+				t.Errorf("IsMaliciousFilePath(%q) = %v, want %v", tt.path, got, tt.want)
 			}
 		})
 	}
@@ -294,7 +316,7 @@ func TestMaliciousFileNames(t *testing.T) {
 		t.Error("MaliciousFileNames should not be empty")
 	}
 
-	expectedFiles := []string{"shai-hulud.js", "setup_bun.js", "bun_environment.js"}
+	expectedFiles := []string{"shai-hulud.js", "setup_bun.js", "bun_environment.js", "package-updated.tgz"}
 	for _, expected := range expectedFiles {
 		found := slices.Contains(ioc.MaliciousFileNames, expected)
 		if !found {
