@@ -127,6 +127,7 @@ The available flags map directly to `cmd/scanner/main.go`:
 | `-strict` | `false` | Exit 1 on ANY finding including warnings (old behavior) |
 | `-warn-only` | `false` | Exit 0 on warnings, only fail on high+ severity findings |
 | `-config` | - | Path to allowlist configuration file (JSON) |
+| `-update-check` | `false` | Check GitHub releases and download a matching update package |
 | `-help` | - | Show help/usage information |
 | `-V` | - | Print version and exit |
 
@@ -156,7 +157,16 @@ shai-hulud-scanner -warn-only /path/to/project
 
 # Use an allowlist configuration file
 shai-hulud-scanner -config shai-hulud.config.json /path/to/project
+
+# Check for a newer GitHub release and download the matching package
+shai-hulud-scanner -update-check
 ```
+
+### Update checks
+
+`-update-check` checks the latest published GitHub release for this project. If a newer version exists, it downloads the matching package for your operating system and architecture into your user cache directory under `shai-hulud-scanner/updates`, verifies it against `checksums.txt` when that release asset is available, and prints the downloaded path.
+
+The updater downloads packages only; it does not install them or replace the running binary. Use your operating system package installer to install the downloaded file.
 
 ---
 

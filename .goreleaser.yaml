@@ -31,6 +31,18 @@ checksum:
   name_template: 'checksums.txt'
   algorithm: sha256
 
+archives:
+  - id: binary-archives
+    ids:
+      - shai-hulud-scanner
+    name_template: '{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}'
+    formats:
+      - tar.gz
+    format_overrides:
+      - goos: windows
+        formats:
+          - zip
+
 snapshot:
   version_template: "{{ incpatch .Version }}-next"
 
@@ -47,6 +59,7 @@ changelog:
 nfpms:
   - id: packages
     package_name: shai-hulud-scanner
+    file_name_template: '{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}'
     vendor: Idox
     homepage: https://github.com/Idox-GenAI/Shai-Hulud-Scanner
     maintainer: Idox

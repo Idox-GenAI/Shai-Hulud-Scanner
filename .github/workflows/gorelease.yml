@@ -27,3 +27,56 @@ jobs:
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  macos-pkg:
+    needs: build
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Build darwin package binary
+        env:
+          CGO_ENABLED: "0"
+          GOOS: darwin
+        run: |
+          for arch in amd64 arm64; do
+            mkdir -p "dist/macos-${arch}"
+            GOARCH="${arch}" go build -ldflags "-s -w -X main.version=${GITHUB_REF_NAME}" -o "dist/macos-${arch}/shai-hulud-scanner" ./cmd/scanner
+          done
+
+      - name: Create macOS pkg
+        env:
+          VERSION: ${{ github.ref_name }}
+        run: |
+          for arch in amd64 arm64; do
+            rm -rf pkgroot
+            mkdir -p pkgroot/usr/local/bin
+            cp "dist/macos-${arch}/shai-hulud-scanner" pkgroot/usr/local/bin/shai-hulud-scanner
+            chmod 755 pkgroot/usr/local/bin/shai-hulud-scanner
+            pkgbuild \
+              --root pkgroot \
+              --identifier io.github.idox-genai.shai-hulud-scanner \
+              --version "${VERSION#v}" \
+              --install-location / \
+              "dist/shai-hulud-scanner_${VERSION}_darwin_${arch}.pkg"
+          done
+
+      - name: Add macOS pkg checksums
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p dist/release-checksums
+          gh release download "${GITHUB_REF_NAME}" --pattern checksums.txt --dir dist/release-checksums
+          (cd dist && shasum -a 256 *.pkg) >> dist/release-checksums/checksums.txt
+
+      - name: Upload macOS pkg and checksums to release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload "${GITHUB_REF_NAME}" dist/*.pkg dist/release-checksums/checksums.txt --clobber
