@@ -34,15 +34,24 @@ func TestExitCodeForReport(t *testing.T) {
 			want:     0,
 		},
 		{
-			name: "high severity in warn-only exits 0 but report write failure makes it 1",
+			name: "high severity in warn-only exits 1",
 			buildReport: func() *report.Report {
 				r := report.NewReport("quick", []string{"/tmp"})
 				r.AddFinding(report.FindingNodeModules, "bad-pkg", "/tmp/node_modules/bad-pkg")
 				return r
 			},
-			warnOnly:        true,
-			reportWriteFail: true,
-			want:            1,
+			warnOnly: true,
+			want:     1,
+		},
+		{
+			name: "warnings in strict mode exit 1",
+			buildReport: func() *report.Report {
+				r := report.NewReport("quick", []string{"/tmp"})
+				r.AddFinding(report.FindingCredentialFile, ".env", "/tmp/.env")
+				return r
+			},
+			strict: true,
+			want:   1,
 		},
 		{
 			name: "critical findings keep exit code 2 even if report write fails",

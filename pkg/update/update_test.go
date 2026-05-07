@@ -23,6 +23,8 @@ func TestCompareVersions(t *testing.T) {
 		{name: "current newer", latest: "1.2.3", current: "1.3.0", want: -1},
 		{name: "release beats prerelease", latest: "1.2.3", current: "1.2.3-next", want: 1},
 		{name: "prerelease older than release", latest: "1.2.3-rc.1", current: "1.2.3", want: -1},
+		{name: "numeric prerelease compares numerically", latest: "1.2.3-rc.10", current: "1.2.3-rc.2", want: 1},
+		{name: "numeric prerelease sorts before text token", latest: "1.2.3-2", current: "1.2.3-alpha", want: -1},
 	}
 
 	for _, tt := range tests {
