@@ -16,7 +16,7 @@ import (
 	"shai-hulud-scanner/pkg/update"
 )
 
-var version = "1.2.4"
+var version = "1.2.5"
 
 const defaultReportName = "ShaiHulud-Scan-Report.txt"
 
@@ -82,7 +82,7 @@ func exitCodeForReport(rpt *report.Report, strict, warnOnly, reportWriteFailed b
 	if strict && rpt.HasFindings() {
 		return 1
 	}
-	if rpt.HasHighSeverity() && !warnOnly {
+	if rpt.HasHighSeverity() {
 		return 1
 	}
 	if reportWriteFailed {

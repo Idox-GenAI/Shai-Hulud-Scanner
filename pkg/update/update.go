@@ -81,6 +81,31 @@ func (c *Checker) CheckAndDownload(ctx context.Context, currentVersion string) (
 		return nil, err
 	}
 
+	result, shouldDownload, err := updateResult(rel, currentVersion)
+	if err != nil {
+		return nil, err
+	}
+	if !shouldDownload {
+		return result, nil
+	}
+
+	asset, destPath, err := c.downloadSelectedAsset(ctx, rel)
+	if err != nil {
+		return nil, err
+	}
+	result.AssetName = asset.Name
+	result.DownloadPath = destPath
+
+	checksumVerified, err := c.verifyChecksumIfAvailable(ctx, rel, destPath)
+	if err != nil {
+		return nil, err
+	}
+	result.ChecksumVerified = checksumVerified
+
+	return result, nil
+}
+
+func updateResult(rel *release, currentVersion string) (*Result, bool, error) {
 	result := &Result{
 		CurrentVersion: strings.TrimSpace(currentVersion),
 		LatestVersion:  rel.TagName,
@@ -88,54 +113,21 @@ func (c *Checker) CheckAndDownload(ctx context.Context, currentVersion string) (
 
 	cmp, err := CompareVersions(rel.TagName, currentVersion)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 	if cmp <= 0 {
-		return result, nil
+		return result, false, nil
 	}
 
 	result.UpdateAvailable = true
-	asset, err := c.selectAsset(rel.Assets)
-	if err != nil {
-		return nil, err
-	}
-	result.AssetName = asset.Name
-
-	destDir, err := c.downloadDir()
-	if err != nil {
-		return nil, err
-	}
-	if err := os.MkdirAll(destDir, 0o755); err != nil {
-		return nil, fmt.Errorf("create update cache directory: %w", err)
-	}
-
-	destPath := filepath.Join(destDir, asset.Name)
-	if err := c.downloadFile(ctx, asset.BrowserDownloadURL, destPath); err != nil {
-		return nil, err
-	}
-	result.DownloadPath = destPath
-
-	if checksum, ok := checksumForAsset(rel.Assets); ok {
-		if err := c.verifyChecksum(ctx, checksum, destPath); err != nil {
-			return nil, err
-		}
-		result.ChecksumVerified = true
-	}
-
-	return result, nil
+	return result, true, nil
 }
 
 func (c *Checker) latestRelease(ctx context.Context) (*release, error) {
-	baseURL := strings.TrimRight(c.BaseURL, "/")
-	if baseURL == "" {
-		baseURL = defaultBaseURL
-	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("%s/repos/%s/%s/releases/latest", baseURL, c.Owner, c.Repo), nil)
+	req, err := c.newGitHubRequest(ctx, c.latestReleaseURL())
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("Accept", "application/vnd.github+json")
-	req.Header.Set("User-Agent", userAgent)
 
 	resp, err := c.client().Do(req)
 	if err != nil {
@@ -158,37 +150,97 @@ func (c *Checker) latestRelease(ctx context.Context) (*release, error) {
 	return &rel, nil
 }
 
+func (c *Checker) latestReleaseURL() string {
+	baseURL := strings.TrimRight(c.BaseURL, "/")
+	if baseURL == "" {
+		baseURL = defaultBaseURL
+	}
+	return fmt.Sprintf("%s/repos/%s/%s/releases/latest", baseURL, c.Owner, c.Repo)
+}
+
+func (c *Checker) newGitHubRequest(ctx context.Context, url string) (*http.Request, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Accept", "application/vnd.github+json")
+	req.Header.Set("User-Agent", userAgent)
+	return req, nil
+}
+
 func (c *Checker) selectAsset(assets []releaseAsset) (releaseAsset, error) {
+	target := c.targetPlatform()
+	patterns, err := target.assetPatterns()
+	if err != nil {
+		return releaseAsset{}, err
+	}
+
+	if asset, ok := findAssetMatchingAnyPattern(assets, patterns); ok {
+		return asset, nil
+	}
+	return releaseAsset{}, fmt.Errorf("no update asset found for %s/%s", target.goos, target.goarch)
+}
+
+type targetPlatform struct {
+	goos        string
+	goarch      string
+	packageKind string
+}
+
+func (c *Checker) targetPlatform() targetPlatform {
 	goos := c.GOOS
 	if goos == "" {
 		goos = runtime.GOOS
 	}
+
 	goarch := c.GOARCH
 	if goarch == "" {
 		goarch = runtime.GOARCH
 	}
 
-	var patterns []string
-	switch goos {
-	case "darwin":
-		patterns = []string{"darwin_" + goarch + ".pkg", "darwin-" + goarch + ".pkg"}
-	case "linux":
-		patterns = linuxAssetPatterns(goarch, c.linuxPackageKind())
-	case "windows":
-		patterns = []string{"windows_" + goarch + ".zip", "windows_" + goarch + ".exe", "windows-" + goarch + ".zip", "windows-" + goarch + ".exe"}
-	default:
-		return releaseAsset{}, fmt.Errorf("updates are not supported for %s/%s", goos, goarch)
+	target := targetPlatform{
+		goos:   goos,
+		goarch: goarch,
 	}
+	if goos == "linux" {
+		target.packageKind = c.linuxPackageKind()
+	}
+	return target
+}
 
+func (p targetPlatform) assetPatterns() ([]string, error) {
+	switch p.goos {
+	case "darwin":
+		return []string{"darwin_" + p.goarch + ".pkg", "darwin-" + p.goarch + ".pkg"}, nil
+	case "linux":
+		return linuxAssetPatterns(p.goarch, p.packageKind), nil
+	case "windows":
+		return []string{
+			"windows_" + p.goarch + ".zip",
+			"windows_" + p.goarch + ".exe",
+			"windows-" + p.goarch + ".zip",
+			"windows-" + p.goarch + ".exe",
+		}, nil
+	default:
+		return nil, fmt.Errorf("updates are not supported for %s/%s", p.goos, p.goarch)
+	}
+}
+
+func findAssetMatchingAnyPattern(assets []releaseAsset, patterns []string) (releaseAsset, bool) {
 	for _, pattern := range patterns {
 		for _, asset := range assets {
-			name := strings.ToLower(asset.Name)
-			if strings.Contains(name, strings.ToLower(pattern)) && !strings.Contains(name, "checksums") {
-				return asset, nil
+			if assetMatchesPattern(asset, pattern) {
+				return asset, true
 			}
 		}
 	}
-	return releaseAsset{}, fmt.Errorf("no update asset found for %s/%s", goos, goarch)
+	return releaseAsset{}, false
+}
+
+func assetMatchesPattern(asset releaseAsset, pattern string) bool {
+	name := strings.ToLower(asset.Name)
+	return !strings.Contains(name, "checksums") &&
+		strings.Contains(name, strings.ToLower(pattern))
 }
 
 func linuxAssetPatterns(goarch, packageKind string) []string {
@@ -258,6 +310,34 @@ func (c *Checker) downloadDir() (string, error) {
 	return filepath.Join(cacheDir, defaultRepo, "updates"), nil
 }
 
+func (c *Checker) downloadSelectedAsset(ctx context.Context, rel *release) (releaseAsset, string, error) {
+	asset, err := c.selectAsset(rel.Assets)
+	if err != nil {
+		return releaseAsset{}, "", err
+	}
+
+	destPath, err := c.downloadPath(asset.Name)
+	if err != nil {
+		return releaseAsset{}, "", err
+	}
+
+	if err := c.downloadFile(ctx, asset.BrowserDownloadURL, destPath); err != nil {
+		return releaseAsset{}, "", err
+	}
+	return asset, destPath, nil
+}
+
+func (c *Checker) downloadPath(assetName string) (string, error) {
+	destDir, err := c.downloadDir()
+	if err != nil {
+		return "", err
+	}
+	if err := os.MkdirAll(destDir, 0o755); err != nil {
+		return "", fmt.Errorf("create update cache directory: %w", err)
+	}
+	return filepath.Join(destDir, assetName), nil
+}
+
 func (c *Checker) downloadFile(ctx context.Context, url, destPath string) error {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
@@ -294,6 +374,17 @@ func (c *Checker) downloadFile(ctx context.Context, url, destPath string) error 
 		return fmt.Errorf("save update asset: %w", err)
 	}
 	return nil
+}
+
+func (c *Checker) verifyChecksumIfAvailable(ctx context.Context, rel *release, destPath string) (bool, error) {
+	checksum, ok := checksumForAsset(rel.Assets)
+	if !ok {
+		return false, nil
+	}
+	if err := c.verifyChecksum(ctx, checksum, destPath); err != nil {
+		return false, err
+	}
+	return true, nil
 }
 
 func checksumForAsset(assets []releaseAsset) (releaseAsset, bool) {
@@ -374,7 +465,8 @@ func (c *Checker) client() *http.Client {
 
 var versionTokenRE = regexp.MustCompile(`\d+|[A-Za-z]+`)
 
-// CompareVersions compares latest and current versions. It returns 1 when latest is newer.
+// CompareVersions compares latest and current versions.
+// It returns 1 when latest is newer, -1 when current is newer, and 0 when equal.
 func CompareVersions(latest, current string) (int, error) {
 	l, err := parseVersion(latest)
 	if err != nil {
@@ -398,7 +490,7 @@ func CompareVersions(latest, current string) (int, error) {
 	if l.pre != "" && c.pre == "" {
 		return -1, nil
 	}
-	return strings.Compare(l.pre, c.pre), nil
+	return comparePrerelease(l.pre, c.pre), nil
 }
 
 type parsedVersion struct {
@@ -437,4 +529,39 @@ func normalizePrerelease(value string) string {
 	}
 	tokens := versionTokenRE.FindAllString(value, -1)
 	return strings.ToLower(strings.Join(tokens, "."))
+}
+
+func comparePrerelease(latest, current string) int {
+	lTokens := strings.Split(latest, ".")
+	cTokens := strings.Split(current, ".")
+	for i := 0; i < len(lTokens) || i < len(cTokens); i++ {
+		if i >= len(lTokens) {
+			return -1
+		}
+		if i >= len(cTokens) {
+			return 1
+		}
+
+		lNum, lErr := strconv.Atoi(lTokens[i])
+		cNum, cErr := strconv.Atoi(cTokens[i])
+		if lErr == nil && cErr == nil {
+			if lNum > cNum {
+				return 1
+			}
+			if lNum < cNum {
+				return -1
+			}
+			continue
+		}
+		if lErr == nil {
+			return -1
+		}
+		if cErr == nil {
+			return 1
+		}
+		if cmp := strings.Compare(lTokens[i], cTokens[i]); cmp != 0 {
+			return cmp
+		}
+	}
+	return 0
 }

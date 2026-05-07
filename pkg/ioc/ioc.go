@@ -351,31 +351,5 @@ func ContainsSuspiciousHookPattern(script string) (string, bool) {
 
 // containsIgnoreCase checks if s contains substr (case-insensitive).
 func containsIgnoreCase(s, substr string) bool {
-	return len(s) >= len(substr) &&
-		(s == substr ||
-			len(substr) > 0 &&
-				(indexOf(toLower(s), toLower(substr)) >= 0))
-}
-
-// toLower converts a string to lowercase without importing strings package.
-func toLower(s string) string {
-	b := make([]byte, len(s))
-	for i := 0; i < len(s); i++ {
-		c := s[i]
-		if c >= 'A' && c <= 'Z' {
-			c += 'a' - 'A'
-		}
-		b[i] = c
-	}
-	return string(b)
-}
-
-// indexOf finds the index of substr in s, returns -1 if not found.
-func indexOf(s, substr string) int {
-	for i := 0; i <= len(s)-len(substr); i++ {
-		if s[i:i+len(substr)] == substr {
-			return i
-		}
-	}
-	return -1
+	return substr != "" && strings.Contains(strings.ToLower(s), strings.ToLower(substr))
 }
