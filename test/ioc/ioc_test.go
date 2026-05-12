@@ -1,6 +1,8 @@
 package ioc_test
 
 import (
+	"os"
+	"path/filepath"
 	"slices"
 	"strings"
 	"testing"
@@ -412,6 +414,8 @@ func TestIsCompromisedNamespace(t *testing.T) {
 		{"tnf-dev is compromised", "@tnf-dev", true},
 		{"ui-ux-gang is compromised", "@ui-ux-gang", true},
 		{"yoobic is compromised", "@yoobic", true},
+		{"tanstack from custom CSV is compromised", "@tanstack", true},
+		{"opensearch-project from custom CSV is compromised", "@opensearch-project", true},
 		{"random namespace is not compromised", "@random-namespace", false},
 		{"angular is not compromised", "@angular", false},
 		{"types is not compromised", "@types", false},
@@ -438,6 +442,8 @@ func TestCompromisedNamespacesList(t *testing.T) {
 		"@ngx",
 		"@ctrl",
 		"@nativescript-community",
+		"@tanstack",
+		"@opensearch-project",
 	}
 	for _, expected := range expectedNamespaces {
 		found := slices.Contains(ioc.CompromisedNamespaces, expected)
@@ -450,6 +456,32 @@ func TestCompromisedNamespacesList(t *testing.T) {
 	for _, ns := range ioc.CompromisedNamespaces {
 		if !strings.HasPrefix(ns, "@") {
 			t.Errorf("CompromisedNamespace should start with @: %s", ns)
+		}
+	}
+}
+
+func TestCompromisedNamespacesIncludesCustomCSVScopes(t *testing.T) {
+	f, err := os.Open(filepath.Join("..", "..", "resources", "ioc-packages-custom.csv"))
+	if err != nil {
+		t.Fatalf("failed to open custom IOC package CSV: %v", err)
+	}
+	defer f.Close()
+
+	constraints, err := ioc.ParsePackageCSV(f)
+	if err != nil {
+		t.Fatalf("ParsePackageCSV() error = %v", err)
+	}
+
+	for _, constraint := range constraints {
+		if !strings.HasPrefix(constraint.Package, "@") {
+			continue
+		}
+		namespace, _, ok := strings.Cut(constraint.Package, "/")
+		if !ok {
+			t.Fatalf("scoped package %q does not contain a namespace separator", constraint.Package)
+		}
+		if !slices.Contains(ioc.CompromisedNamespaces, namespace) {
+			t.Errorf("CompromisedNamespaces missing custom CSV namespace %q from package %q", namespace, constraint.Package)
 		}
 	}
 }

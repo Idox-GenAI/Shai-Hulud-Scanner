@@ -1,11 +1,14 @@
 package ioc
 
 import (
+	"bytes"
 	"encoding/csv"
 	"fmt"
 	"io"
 	"slices"
 	"strings"
+
+	"shai-hulud-scanner/resources"
 )
 
 // PackageFeedURLs contains URLs that provide lists of compromised npm packages.
@@ -154,7 +157,9 @@ var RunnerDirPatterns = []string{
 
 // CompromisedNamespaces contains npm scopes known to have been compromised in supply chain attacks.
 // Packages from these namespaces should be reviewed carefully.
-var CompromisedNamespaces = []string{
+var CompromisedNamespaces = buildCompromisedNamespaces(hardcodedCompromisedNamespaces, resources.IOCPackagesCustomCSV)
+
+var hardcodedCompromisedNamespaces = []string{
 	"@crowdstrike",
 	"@art-ws",
 	"@ngx",
@@ -172,6 +177,52 @@ var CompromisedNamespaces = []string{
 	"@tnf-dev",
 	"@ui-ux-gang",
 	"@yoobic",
+}
+
+func buildCompromisedNamespaces(hardcoded []string, packageCSV []byte) []string {
+	seen := make(map[string]struct{}, len(hardcoded))
+	namespaces := make([]string, 0, len(hardcoded))
+
+	for _, namespace := range hardcoded {
+		namespace = strings.TrimSpace(namespace)
+		if namespace == "" {
+			continue
+		}
+		if _, ok := seen[namespace]; ok {
+			continue
+		}
+		seen[namespace] = struct{}{}
+		namespaces = append(namespaces, namespace)
+	}
+
+	constraints, err := ParsePackageCSV(bytes.NewReader(packageCSV))
+	if err != nil {
+		return namespaces
+	}
+	for _, constraint := range constraints {
+		namespace, ok := packageNamespace(constraint.Package)
+		if !ok {
+			continue
+		}
+		if _, exists := seen[namespace]; exists {
+			continue
+		}
+		seen[namespace] = struct{}{}
+		namespaces = append(namespaces, namespace)
+	}
+
+	return namespaces
+}
+
+func packageNamespace(packageName string) (string, bool) {
+	if !strings.HasPrefix(packageName, "@") {
+		return "", false
+	}
+	slash := strings.Index(packageName, "/")
+	if slash <= 1 {
+		return "", false
+	}
+	return packageName[:slash], true
 }
 
 // IsCompromisedNamespace checks if a namespace is in the compromised list.

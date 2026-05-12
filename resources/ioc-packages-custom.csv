@@ -72,6 +72,7 @@ mbt,= 1.2.48
 @mistralai/mistralai-gcp,= 1.7.1 || = 1.7.2 || = 1.7.3
 @ml-toolkit-ts/preprocessing,= 1.0.2 || = 1.0.3
 @ml-toolkit-ts/xgboost,= 1.0.3 || = 1.0.4
+@opensearch-project/opensearch,= 3.5.3 || = 3.6.2 || = 3.7.0 || = 3.8.0
 @squawk/airport-data,= 0.7.4 || = 0.7.5 || = 0.7.6 || = 0.7.7
 @squawk/airports,= 0.6.2 || = 0.6.3 || = 0.6.4 || = 0.6.5
 @squawk/airspace,= 0.8.1 || = 0.8.2 || = 0.8.3 || = 0.8.4
