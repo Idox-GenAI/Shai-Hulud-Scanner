@@ -1015,7 +1015,13 @@ func (s *Scanner) checkPackageJson(pkgPath string) {
 	}
 
 	var pkg struct {
-		Scripts map[string]string `json:"scripts"`
+		Scripts              map[string]string `json:"scripts"`
+		Dependencies         json.RawMessage   `json:"dependencies"`
+		DevDependencies      json.RawMessage   `json:"devDependencies"`
+		OptionalDependencies json.RawMessage   `json:"optionalDependencies"`
+		PeerDependencies     json.RawMessage   `json:"peerDependencies"`
+		BundledDependencies  json.RawMessage   `json:"bundledDependencies"`
+		BundleDependencies   json.RawMessage   `json:"bundleDependencies"`
 	}
 	if err := json.Unmarshal(content, &pkg); err != nil {
 		return
@@ -1030,6 +1036,76 @@ func (s *Scanner) checkPackageJson(pkgPath string) {
 			s.addFinding(report.FindingPostinstallHook, fmt.Sprintf("Suspicious %s: %s", hookName, pattern), pkgPath)
 		}
 	}
+
+	s.checkPackageJSONDependencies(pkgPath, "dependencies", packageJSONDependencyMap(pkg.Dependencies))
+	s.checkPackageJSONDependencies(pkgPath, "devDependencies", packageJSONDependencyMap(pkg.DevDependencies))
+	s.checkPackageJSONDependencies(pkgPath, "optionalDependencies", packageJSONDependencyMap(pkg.OptionalDependencies))
+	s.checkPackageJSONDependencies(pkgPath, "peerDependencies", packageJSONDependencyMap(pkg.PeerDependencies))
+	s.checkPackageJSONBundledDependencies(pkgPath, "bundledDependencies", packageJSONDependencyList(pkg.BundledDependencies))
+	s.checkPackageJSONBundledDependencies(pkgPath, "bundleDependencies", packageJSONDependencyList(pkg.BundleDependencies))
+}
+
+func packageJSONDependencyMap(raw json.RawMessage) map[string]string {
+	var deps map[string]string
+	if len(raw) == 0 || json.Unmarshal(raw, &deps) != nil {
+		return nil
+	}
+	return deps
+}
+
+func packageJSONDependencyList(raw json.RawMessage) []string {
+	var deps []string
+	if len(raw) == 0 || json.Unmarshal(raw, &deps) != nil {
+		return nil
+	}
+	return deps
+}
+
+func (s *Scanner) checkPackageJSONDependencies(pkgPath, section string, deps map[string]string) {
+	for pkgName, spec := range deps {
+		if !s.isCompromisedManifestDependency(pkgName, spec) {
+			continue
+		}
+		s.addFinding(report.FindingPackageJSONComp,
+			fmt.Sprintf("package.json %s declares compromised package: %s@%s", section, pkgName, spec),
+			pkgPath)
+		s.log("    [!] PACKAGE.JSON: Compromised package %s in %s", pkgName, pkgPath)
+	}
+}
+
+func (s *Scanner) checkPackageJSONBundledDependencies(pkgPath, section string, deps []string) {
+	for _, pkgName := range deps {
+		pkgName = strings.TrimSpace(pkgName)
+		if pkgName == "" || !s.isCompromisedPackageNoVersion(pkgName) {
+			continue
+		}
+		s.addFinding(report.FindingPackageJSONComp,
+			fmt.Sprintf("package.json %s declares compromised package: %s", section, pkgName),
+			pkgPath)
+		s.log("    [!] PACKAGE.JSON: Compromised package %s in %s", pkgName, pkgPath)
+	}
+}
+
+func (s *Scanner) isCompromisedManifestDependency(pkgName, spec string) bool {
+	if s.isCompromisedPackageNoVersion(pkgName) {
+		return true
+	}
+	version := exactManifestVersion(spec)
+	return version != "" && s.isCompromisedPackageVersion(pkgName, version)
+}
+
+func exactManifestVersion(spec string) string {
+	spec = strings.TrimSpace(spec)
+	if spec == "" {
+		return ""
+	}
+	if strings.HasPrefix(spec, "=") {
+		spec = strings.TrimSpace(strings.TrimPrefix(spec, "="))
+	}
+	if !looksLikeExactPackageVersion(spec) {
+		return ""
+	}
+	return normalizePackageVersion(spec)
 }
 
 func (s *Scanner) scanHashes() {

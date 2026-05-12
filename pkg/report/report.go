@@ -31,6 +31,7 @@ const (
 	FindingEnvExfil            FindingType = "env-exfil-pattern"
 	FindingCompromisedNS       FindingType = "compromised-namespace"
 	FindingLockfileCompromised FindingType = "lockfile-compromised"
+	FindingPackageJSONComp     FindingType = "package-json-compromised"
 )
 
 // FindingSeverity represents the severity level of a finding.
@@ -53,6 +54,7 @@ var findingSeverityMap = map[FindingType]FindingSeverity{
 	FindingGitRemote:           SeverityHigh,
 	FindingWorkflowPattern:     SeverityHigh,
 	FindingLockfileCompromised: SeverityHigh,
+	FindingPackageJSONComp:     SeverityHigh,
 	FindingWorkflowContent:     SeverityWarning,
 	FindingCredentialFile:      SeverityWarning,
 	FindingRunnerInstallation:  SeverityWarning,

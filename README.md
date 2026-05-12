@@ -28,6 +28,7 @@ The scanner performs the following checks:
 | Check | Quick Mode | Full Mode | Description |
 |-------|------------|-----------|-------------|
 | Compromised npm packages | Yes | Yes | Fetches live IOC feeds and scans `node_modules` |
+| Package manifest scanning | Yes | Yes | Detects compromised packages declared in `package.json` before install |
 | Lockfile scanning | Yes | Yes | Detects compromised packages in `package-lock.json`, `yarn.lock`, `pnpm-lock.yaml` |
 | Compromised namespaces | Yes | Yes | Flags packages from known compromised npm scopes |
 | npm cache scan | No | Yes | Scans npm cache for compromised packages |
@@ -164,7 +165,7 @@ shai-hulud-scanner -config shai-hulud.config.json /path/to/project
 
 **Quick Mode**
 - Scans top-level `node_modules` only (depth-limited)
-- Checks root `package.json` for suspicious hooks
+- Checks root `package.json` for suspicious hooks and compromised dependency declarations
 - Hash-scans only files with suspicious names
 - Skips npm cache, self-hosted runners, env patterns
 
@@ -172,7 +173,7 @@ shai-hulud-scanner -config shai-hulud.config.json /path/to/project
 - Recursive scan of all `node_modules` directories
 - Complete npm cache analysis
 - Full hash scan of all JS/TS files
-- Deep postinstall hook analysis
+- Deep `package.json` hook and dependency analysis
 - Self-hosted runner detection
 - Environment variable exfiltration pattern detection
 
@@ -197,6 +198,7 @@ Findings are classified into three severity levels:
 | `node_modules` | High | Known compromised package |
 | `npm-cache` | High | Known compromised package |
 | `lockfile-compromised` | High | Compromised package in lockfile |
+| `package-json-compromised` | High | Compromised package declared before install |
 | `file-artifact` | High | Known malicious filename |
 | `git-branch` | High | Specific Shai-Hulud IOC |
 | `git-remote` | High | Specific Shai-Hulud IOC |

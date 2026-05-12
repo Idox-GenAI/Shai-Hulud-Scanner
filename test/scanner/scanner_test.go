@@ -541,6 +541,140 @@ func TestDetectsCompromisedPackageInLockfile(t *testing.T) {
 	}
 }
 
+func TestPackageJSONDependenciesDetectCompromisedPackagesBeforeInstall(t *testing.T) {
+	origURLs := append([]string(nil), ioc.PackageFeedURLs...)
+	defer func() { ioc.PackageFeedURLs = origURLs }()
+	ioc.PackageFeedURLs = []string{"https://example.invalid/feed.csv"}
+
+	tmpDir := t.TempDir()
+	cacheFile := filepath.Join(tmpDir, "compromised-cache.txt")
+	cacheCSV := strings.Join([]string{
+		"Package,Version",
+		"bad-prod,= 1.2.3",
+		"bad-dev,= 2.3.4",
+		"@evil/scoped,= 3.4.5",
+		"bad-optional,= 4.5.6",
+		"bad-peer,= 5.6.7",
+	}, "\n")
+	if err := os.WriteFile(cacheFile, []byte(cacheCSV), 0o644); err != nil {
+		t.Fatalf("failed to write cache: %v", err)
+	}
+	now := time.Now()
+	if err := os.Chtimes(cacheFile, now, now); err != nil {
+		t.Fatalf("failed to set cache mtime: %v", err)
+	}
+
+	packageJSON := `{
+  "dependencies": {
+    "bad-prod": "1.2.3",
+    "@evil/scoped": "= 3.4.5"
+  },
+  "devDependencies": {
+    "bad-dev": "2.3.4"
+  },
+  "optionalDependencies": {
+    "bad-optional": "4.5.6"
+  },
+  "peerDependencies": {
+    "bad-peer": "5.6.7"
+  }
+}`
+	if err := os.WriteFile(filepath.Join(tmpDir, "package.json"), []byte(packageJSON), 0o644); err != nil {
+		t.Fatalf("failed to write package.json: %v", err)
+	}
+
+	var buf bytes.Buffer
+	cfg := scanner.DefaultConfig()
+	cfg.RootPaths = []string{tmpDir}
+	cfg.ScanMode = scanner.ScanModeQuick
+	cfg.NoBanner = true
+	cfg.FilesOnly = false
+	cfg.CacheFile = cacheFile
+	cfg.ReportPath = filepath.Join(tmpDir, "report.txt")
+	cfg.Output = &buf
+
+	rpt, err := scanner.New(cfg).Run()
+	if err != nil {
+		t.Fatalf("Run() error = %v", err)
+	}
+
+	findings := rpt.GetFindingsByType(report.FindingPackageJSONComp)
+	wantPackages := []string{"bad-prod", "bad-dev", "@evil/scoped", "bad-optional", "bad-peer"}
+	for _, pkgName := range wantPackages {
+		found := false
+		for _, f := range findings {
+			if f.Severity == report.SeverityHigh && strings.Contains(f.Indicator, pkgName) {
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Fatalf("expected high package.json finding for %s, findings: %+v", pkgName, findings)
+		}
+	}
+}
+
+func TestPackageJSONDependenciesRespectExactVersionPolicy(t *testing.T) {
+	origURLs := append([]string(nil), ioc.PackageFeedURLs...)
+	defer func() { ioc.PackageFeedURLs = origURLs }()
+	ioc.PackageFeedURLs = []string{"https://example.invalid/feed.csv"}
+
+	tmpDir := t.TempDir()
+	cacheFile := filepath.Join(tmpDir, "compromised-cache.txt")
+	cacheCSV := "Package,Version\nversioned-bad,= 1.2.3\nany-bad,\nany-bad-plain\n"
+	if err := os.WriteFile(cacheFile, []byte(cacheCSV), 0o644); err != nil {
+		t.Fatalf("failed to write cache: %v", err)
+	}
+	now := time.Now()
+	if err := os.Chtimes(cacheFile, now, now); err != nil {
+		t.Fatalf("failed to set cache mtime: %v", err)
+	}
+
+	packageJSON := `{
+  "dependencies": {
+    "versioned-bad": "^1.2.3",
+    "any-bad-plain": "^9.9.9"
+  },
+  "devDependencies": {
+    "versioned-bad": "9.9.9"
+  },
+  "bundledDependencies": ["any-bad-plain"],
+  "bundleDependencies": ["versioned-bad"]
+}`
+	if err := os.WriteFile(filepath.Join(tmpDir, "package.json"), []byte(packageJSON), 0o644); err != nil {
+		t.Fatalf("failed to write package.json: %v", err)
+	}
+
+	var buf bytes.Buffer
+	cfg := scanner.DefaultConfig()
+	cfg.RootPaths = []string{tmpDir}
+	cfg.ScanMode = scanner.ScanModeQuick
+	cfg.NoBanner = true
+	cfg.FilesOnly = false
+	cfg.CacheFile = cacheFile
+	cfg.ReportPath = filepath.Join(tmpDir, "report.txt")
+	cfg.Output = &buf
+
+	rpt, err := scanner.New(cfg).Run()
+	if err != nil {
+		t.Fatalf("Run() error = %v", err)
+	}
+
+	findings := rpt.GetFindingsByType(report.FindingPackageJSONComp)
+	foundAnyVersion := false
+	for _, f := range findings {
+		if strings.Contains(f.Indicator, "versioned-bad") {
+			t.Fatalf("version-specific IOC should not match ranges, non-matching versions, or bundled entries without a version, findings: %+v", findings)
+		}
+		if strings.Contains(f.Indicator, "any-bad-plain") {
+			foundAnyVersion = true
+		}
+	}
+	if !foundAnyVersion {
+		t.Fatalf("expected any-version IOC to be detected from package.json, findings: %+v", findings)
+	}
+}
+
 func TestDetectsScopedPackageInYarnLock(t *testing.T) {
 	origURLs := append([]string(nil), ioc.PackageFeedURLs...)
 	defer func() { ioc.PackageFeedURLs = origURLs }()
