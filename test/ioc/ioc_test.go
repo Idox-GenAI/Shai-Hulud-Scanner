@@ -144,7 +144,10 @@ func TestIsSuspiciousFileName(t *testing.T) {
 		{"bundle.js", "bundle.js", true},
 		{"setup_bun.js", "setup_bun.js", true},
 		{"bun_environment.js", "bun_environment.js", true},
+		{"router_init.js", "router_init.js", true},
+		{"router_runtime.js", "router_runtime.js", true},
 		{"shai-hulud.js", "shai-hulud.js", true},
+		{"tanstack_runner.js", "tanstack_runner.js", true},
 		{"normal.js", "normal.js", false},
 		{"app.js", "app.js", false},
 	}
@@ -458,6 +461,8 @@ func TestNewMaliciousSHA256Hashes(t *testing.T) {
 		"81d2a004a1bca6ef87a1caf7d0e0b355ad1764238e40ff6d1b1cb77ad4f595c3",
 		"83a650ce44b2a9854802a7fb4c202877815274c129af49e6c2d1d5d5d55c501e",
 		"aba1fcbd15c6ba6d9b96e34cec287660fff4a31632bf76f2a766c499f55ca1ee",
+		"ab4fcadaec49c03278063dd269ea5eef82d24f2124a8e15d7b90f2fa8601266c",
+		"2ec78d556d696e208927cc503d48e4b5eb56b31abc2870c2ed2e98d6be27fc96",
 	}
 
 	for _, hash := range newHashes {
