@@ -175,7 +175,7 @@ The updater downloads packages only; it does not install them or replace the run
 
 **Quick Mode**
 - Scans top-level `node_modules` only (depth-limited)
-- Checks root `package.json` for suspicious hooks and compromised dependency declarations
+- Checks root `package.json` for suspicious hooks and compromised dependency declarations, including exact pins and `^`/`~` ranges that can resolve to a compromised version
 - Hash-scans only files with suspicious names
 - Skips npm cache, self-hosted runners, env patterns
 
@@ -183,7 +183,7 @@ The updater downloads packages only; it does not install them or replace the run
 - Recursive scan of all `node_modules` directories
 - Complete npm cache analysis
 - Full hash scan of all JS/TS files
-- Deep `package.json` hook and dependency analysis
+- Deep `package.json` hook and dependency analysis, including partial npm ranges such as `^1.2`, `^1`, `~1.2`, and `~1`
 - Self-hosted runner detection
 - Environment variable exfiltration pattern detection
 

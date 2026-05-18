@@ -751,6 +751,78 @@ func TestPackageJSONDependencyRangesWarnWhenTheyCanResolveToCompromisedVersions(
 	}
 }
 
+func TestPackageJSONCaretAndTildeRangesAppearInReport(t *testing.T) {
+	origURLs := append([]string(nil), ioc.PackageFeedURLs...)
+	defer func() { ioc.PackageFeedURLs = origURLs }()
+	ioc.PackageFeedURLs = []string{"https://example.invalid/feed.csv"}
+
+	tmpDir := t.TempDir()
+	cacheFile := filepath.Join(tmpDir, "compromised-cache.txt")
+	cacheCSV := strings.Join([]string{
+		"Package,Version",
+		"caret-bad,= 1.2.4",
+		"tilde-bad,= 2.3.9",
+		"partial-caret-bad,= 3.4.5",
+		"partial-tilde-bad,= 4.5.6",
+	}, "\n")
+	if err := os.WriteFile(cacheFile, []byte(cacheCSV), 0o644); err != nil {
+		t.Fatalf("failed to write cache: %v", err)
+	}
+	now := time.Now()
+	if err := os.Chtimes(cacheFile, now, now); err != nil {
+		t.Fatalf("failed to set cache mtime: %v", err)
+	}
+
+	packageJSON := `{
+  "dependencies": {
+    "caret-bad": "^1.2.3",
+    "tilde-bad": "~2.3.0",
+    "partial-caret-bad": "^3.4",
+    "partial-tilde-bad": "~4.5"
+  }
+}`
+	if err := os.WriteFile(filepath.Join(tmpDir, "package.json"), []byte(packageJSON), 0o644); err != nil {
+		t.Fatalf("failed to write package.json: %v", err)
+	}
+
+	var buf bytes.Buffer
+	cfg := scanner.DefaultConfig()
+	cfg.RootPaths = []string{tmpDir}
+	cfg.ScanMode = scanner.ScanModeQuick
+	cfg.NoBanner = true
+	cfg.FilesOnly = false
+	cfg.CacheFile = cacheFile
+	cfg.ReportPath = filepath.Join(tmpDir, "report.txt")
+	cfg.Output = &buf
+
+	rpt, err := scanner.New(cfg).Run()
+	if err != nil {
+		t.Fatalf("Run() error = %v", err)
+	}
+
+	var reportText bytes.Buffer
+	if err := rpt.Write(&reportText); err != nil {
+		t.Fatalf("Write() error = %v", err)
+	}
+
+	findings := rpt.GetFindingsByType(report.FindingPackageJSONComp)
+	for _, want := range []string{"caret-bad@^1.2.3", "tilde-bad@~2.3.0", "partial-caret-bad@^3.4", "partial-tilde-bad@~4.5"} {
+		found := false
+		for _, f := range findings {
+			if f.Severity == report.SeverityWarning && strings.Contains(f.Indicator, want) {
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Fatalf("expected warning package.json finding for %s, findings: %+v", want, findings)
+		}
+		if !strings.Contains(reportText.String(), want) {
+			t.Fatalf("expected rendered report to include %s, report:\n%s", want, reportText.String())
+		}
+	}
+}
+
 func TestPackageJSONDependencyRangeWarningsDeferToLocalLockfile(t *testing.T) {
 	origURLs := append([]string(nil), ioc.PackageFeedURLs...)
 	defer func() { ioc.PackageFeedURLs = origURLs }()

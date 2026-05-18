@@ -1184,27 +1184,86 @@ func npmRangeContainsVersion(spec, version string) bool {
 }
 
 func npmCaretRangeContains(baseSpec string, version npmSemver) bool {
-	base, ok := parseNPMSemver(baseSpec)
+	base, ok := parseNPMRangeBase(baseSpec)
 	if !ok {
 		return false
 	}
+	precision := npmRangeBasePrecision(baseSpec)
 	upper := npmSemver{major: base.major + 1}
 	if base.major == 0 {
 		upper = npmSemver{minor: base.minor + 1}
 	}
-	if base.major == 0 && base.minor == 0 {
+	if base.major == 0 && precision == 1 {
+		upper = npmSemver{major: 1}
+	}
+	if base.major == 0 && base.minor == 0 && precision == 3 {
 		upper = npmSemver{patch: base.patch + 1}
 	}
 	return compareNPMSemver(version, base) >= 0 && compareNPMSemver(version, upper) < 0
 }
 
 func npmTildeRangeContains(baseSpec string, version npmSemver) bool {
-	base, ok := parseNPMSemver(baseSpec)
+	base, ok := parseNPMRangeBase(baseSpec)
 	if !ok {
 		return false
 	}
 	upper := npmSemver{major: base.major, minor: base.minor + 1}
+	if npmRangeBasePrecision(baseSpec) == 1 {
+		upper = npmSemver{major: base.major + 1}
+	}
 	return compareNPMSemver(version, base) >= 0 && compareNPMSemver(version, upper) < 0
+}
+
+func parseNPMRangeBase(raw string) (npmSemver, bool) {
+	raw = normalizePackageVersion(raw)
+	raw = strings.TrimPrefix(raw, "v")
+	if raw == "" || strings.ContainsAny(raw, "*/:") {
+		return npmSemver{}, false
+	}
+
+	base, _, _ := strings.Cut(raw, "+")
+	base, prerelease, _ := strings.Cut(base, "-")
+	parts := strings.Split(base, ".")
+	if len(parts) == 0 || len(parts) > 3 {
+		return npmSemver{}, false
+	}
+
+	nums := [3]int{}
+	for i, part := range parts {
+		if isNPMWildcardPart(part) {
+			break
+		}
+		n, ok := parseSemverNumber(part)
+		if !ok {
+			return npmSemver{}, false
+		}
+		nums[i] = n
+	}
+	return npmSemver{major: nums[0], minor: nums[1], patch: nums[2], prerelease: prerelease}, true
+}
+
+func npmRangeBasePrecision(raw string) int {
+	raw = normalizePackageVersion(raw)
+	raw = strings.TrimPrefix(raw, "v")
+	base, _, _ := strings.Cut(raw, "+")
+	base, _, _ = strings.Cut(base, "-")
+	precision := 0
+	for _, part := range strings.Split(base, ".") {
+		if isNPMWildcardPart(part) {
+			break
+		}
+		precision++
+	}
+	return precision
+}
+
+func isNPMWildcardPart(part string) bool {
+	switch strings.ToLower(strings.TrimSpace(part)) {
+	case "x", "*":
+		return true
+	default:
+		return false
+	}
 }
 
 func npmComparatorSetContains(spec string, version npmSemver) bool {
