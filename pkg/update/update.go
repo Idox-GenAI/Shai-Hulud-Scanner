@@ -328,6 +328,10 @@ func (c *Checker) downloadSelectedAsset(ctx context.Context, rel *release) (rele
 }
 
 func (c *Checker) downloadPath(assetName string) (string, error) {
+	safeName, err := safeAssetName(assetName)
+	if err != nil {
+		return "", err
+	}
 	destDir, err := c.downloadDir()
 	if err != nil {
 		return "", err
@@ -335,7 +339,19 @@ func (c *Checker) downloadPath(assetName string) (string, error) {
 	if err := os.MkdirAll(destDir, 0o755); err != nil {
 		return "", fmt.Errorf("create update cache directory: %w", err)
 	}
-	return filepath.Join(destDir, assetName), nil
+	return filepath.Join(destDir, safeName), nil
+}
+
+func safeAssetName(assetName string) (string, error) {
+	if assetName == "" ||
+		assetName == "." ||
+		assetName == ".." ||
+		filepath.IsAbs(assetName) ||
+		assetName != filepath.Base(assetName) ||
+		strings.Contains(assetName, `\`) {
+		return "", fmt.Errorf("unsafe update asset name: %q", assetName)
+	}
+	return assetName, nil
 }
 
 func (c *Checker) downloadFile(ctx context.Context, url, destPath string) error {

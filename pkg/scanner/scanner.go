@@ -287,13 +287,22 @@ func (s *Scanner) loadCompromisedPackages() error {
 	}
 
 	if !usedFreshCache {
-		for _, url := range ioc.PackageFeedURLs {
-			s.log("[*] Fetching compromised package list from: %s", url)
-			pkgs, err := s.fetchPackageList(url)
-			if err != nil {
-				s.log("[!] Failed to fetch %s: %v", url, err)
-				continue
-			}
+		feedResults := make([][]string, len(ioc.PackageFeedURLs))
+		var wg sync.WaitGroup
+		for i, url := range ioc.PackageFeedURLs {
+			i, url := i, url
+			wg.Go(func() {
+				s.log("[*] Fetching compromised package list from: %s", url)
+				pkgs, err := s.fetchPackageList(url)
+				if err != nil {
+					s.log("[!] Failed to fetch %s: %v", url, err)
+					return
+				}
+				feedResults[i] = pkgs
+			})
+		}
+		wg.Wait()
+		for _, pkgs := range feedResults {
 			allPackages = append(allPackages, pkgs...)
 		}
 
@@ -486,6 +495,13 @@ func (s *Scanner) isCompromisedPackageVersion(pkgName, version string) bool {
 	return false
 }
 
+func (s *Scanner) isCompromisedInstalledPackage(pkgName, pkgDir string) bool {
+	if s.isCompromisedPackageNoVersion(pkgName) {
+		return true
+	}
+	return s.isCompromisedPackageVersion(pkgName, s.readPackageVersion(pkgDir))
+}
+
 func (s *Scanner) fetchPackageList(url string) ([]string, error) {
 	client := &http.Client{Timeout: 30 * time.Second}
 	resp, err := client.Get(url)
@@ -602,49 +618,72 @@ func (s *Scanner) findNodeModules() []string {
 }
 
 func (s *Scanner) scanNodeModules(nmDirs []string) {
+	workers := min(runtime.NumCPU(), len(nmDirs))
+	if workers <= 1 {
+		for _, nm := range nmDirs {
+			s.scanNodeModulesDir(nm)
+		}
+		return
+	}
+
+	jobs := make(chan string)
+	var wg sync.WaitGroup
+	for range workers {
+		wg.Go(func() {
+			for nm := range jobs {
+				s.scanNodeModulesDir(nm)
+			}
+		})
+	}
 	for _, nm := range nmDirs {
-		entries, err := os.ReadDir(nm)
-		if err != nil {
+		jobs <- nm
+	}
+	close(jobs)
+	wg.Wait()
+}
+
+func (s *Scanner) scanNodeModulesDir(nm string) {
+	entries, err := os.ReadDir(nm)
+	if err != nil {
+		return
+	}
+
+	for _, entry := range entries {
+		if !entry.IsDir() {
 			continue
 		}
 
-		for _, entry := range entries {
-			if !entry.IsDir() {
+		name := entry.Name()
+		childPath := filepath.Join(nm, name)
+
+		if strings.HasPrefix(name, "@") {
+			// Scoped package
+			if !s.scopes[name] {
 				continue
 			}
-
-			name := entry.Name()
-			childPath := filepath.Join(nm, name)
-
-			if strings.HasPrefix(name, "@") {
-				// Scoped package
-				if !s.scopes[name] {
+			subEntries, err := os.ReadDir(childPath)
+			if err != nil {
+				continue
+			}
+			for _, subEntry := range subEntries {
+				if !subEntry.IsDir() {
 					continue
 				}
-				subEntries, err := os.ReadDir(childPath)
-				if err != nil {
-					continue
-				}
-				for _, subEntry := range subEntries {
-					if !subEntry.IsDir() {
-						continue
-					}
-					pkgName := subEntry.Name()
-					if s.compromisedScope[name] != nil && s.compromisedScope[name][pkgName] {
-						fullName := name + "/" + pkgName
-						pkgDir := filepath.Join(childPath, pkgName)
-						if s.isCompromisedPackageVersion(fullName, s.readPackageVersion(pkgDir)) {
-							s.addFinding(report.FindingNodeModules, fullName, pkgDir)
-							s.log("    [!] FOUND: %s at %s", fullName, nm)
-						}
+				pkgName := subEntry.Name()
+				if s.compromisedScope[name] != nil && s.compromisedScope[name][pkgName] {
+					fullName := name + "/" + pkgName
+					pkgDir := filepath.Join(childPath, pkgName)
+					if s.isCompromisedInstalledPackage(fullName, pkgDir) {
+						s.addFinding(report.FindingNodeModules, fullName, pkgDir)
+						s.log("    [!] FOUND: %s at %s", fullName, nm)
 					}
 				}
-			} else {
-				// Unscoped package
-				if s.compromisedPkgs[name] && s.isCompromisedPackageVersion(name, s.readPackageVersion(childPath)) {
-					s.addFinding(report.FindingNodeModules, name, childPath)
-					s.log("    [!] FOUND: %s at %s", name, nm)
-				}
+			}
+		} else {
+			// Unscoped package
+			if s.compromisedPkgs[name] && s.isCompromisedInstalledPackage(name, childPath) {
+				s.addFinding(report.FindingNodeModules, name, childPath)
+				s.log("    [!] FOUND: %s at %s", name, nm)
 			}
 		}
 	}
@@ -816,6 +855,9 @@ func (s *Scanner) scanGit() {
 				if err != nil {
 					return nil
 				}
+				if shouldSkipNodeModulesDir(d) {
+					return filepath.SkipDir
+				}
 				if d.IsDir() && d.Name() == ".git" {
 					gitDirs = append(gitDirs, path)
 					return filepath.SkipDir
@@ -868,6 +910,9 @@ func (s *Scanner) scanWorkflows() {
 		filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
 			if err != nil {
 				return nil
+			}
+			if shouldSkipNodeModulesDir(d) {
+				return filepath.SkipDir
 			}
 			if d.IsDir() && strings.HasSuffix(path, filepath.Join(".github", "workflows")) {
 				// Scan workflow files in this directory
@@ -924,11 +969,13 @@ func (s *Scanner) scanCredentials() {
 		if s.config.ScanMode == ScanModeFull {
 			// Find all .env* files
 			filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
-				if err != nil || d.IsDir() {
+				if err != nil {
 					return nil
 				}
-				// Skip node_modules
-				if pathHasDirSegment(path, "node_modules") {
+				if shouldSkipNodeModulesDir(d) {
+					return filepath.SkipDir
+				}
+				if d.IsDir() {
 					return nil
 				}
 				if strings.HasPrefix(d.Name(), ".env") {
@@ -955,6 +1002,9 @@ func (s *Scanner) scanRunners() {
 		filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
 			if err != nil || !d.IsDir() {
 				return nil
+			}
+			if shouldSkipNodeModulesDir(d) {
+				return filepath.SkipDir
 			}
 
 			name := d.Name()
@@ -999,7 +1049,13 @@ func (s *Scanner) scanHooks() {
 		} else {
 			// Full mode: find all package.json files
 			filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
-				if err != nil || d.IsDir() {
+				if err != nil {
+					return nil
+				}
+				if d.IsDir() {
+					if d.Name() == "node_modules" && pathDirSegmentCount(path, "node_modules") > 1 {
+						return filepath.SkipDir
+					}
 					return nil
 				}
 				// Skip deeply nested node_modules
@@ -1407,6 +1463,16 @@ func (s *Scanner) scanHashes() {
 		suspiciousNames[n] = true
 	}
 
+	hashJobs := make(chan string, runtime.NumCPU()*2)
+	var hashWG sync.WaitGroup
+	for range max(1, runtime.NumCPU()) {
+		hashWG.Go(func() {
+			for path := range hashJobs {
+				s.checkFileHash(path)
+			}
+		})
+	}
+
 	for _, root := range s.config.RootPaths {
 		if _, err := os.Stat(root); os.IsNotExist(err) {
 			continue
@@ -1415,7 +1481,13 @@ func (s *Scanner) scanHashes() {
 		if s.config.ScanMode == ScanModeQuick {
 			// Quick mode: only check files with suspicious names
 			filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
-				if err != nil || d.IsDir() {
+				if err != nil {
+					return nil
+				}
+				if d.IsDir() {
+					if d.Name() == "node_modules" && pathDirSegmentCount(path, "node_modules") > 1 {
+						return filepath.SkipDir
+					}
 					return nil
 				}
 				// Skip deeply nested node_modules
@@ -1423,7 +1495,7 @@ func (s *Scanner) scanHashes() {
 					return nil
 				}
 				if suspiciousNames[d.Name()] {
-					s.checkFileHash(path)
+					hashJobs <- path
 				}
 				return nil
 			})
@@ -1439,12 +1511,15 @@ func (s *Scanner) scanHashes() {
 					return nil
 				}
 				if strings.HasSuffix(name, ".js") || strings.HasSuffix(name, ".ts") {
-					s.checkFileHash(path)
+					hashJobs <- path
 				}
 				return nil
 			})
 		}
 	}
+
+	close(hashJobs)
+	hashWG.Wait()
 }
 
 func (s *Scanner) checkFileHash(filePath string) {
@@ -1474,6 +1549,9 @@ func (s *Scanner) scanMigrationSuffix() {
 		filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
 			if err != nil || !d.IsDir() {
 				return nil
+			}
+			if shouldSkipNodeModulesDir(d) {
+				return filepath.SkipDir
 			}
 
 			// Check for -migration directories
@@ -1510,7 +1588,10 @@ func (s *Scanner) scanTrufflehog() {
 			}
 
 			filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
-				if err != nil || d.IsDir() {
+				if err != nil {
+					return nil
+				}
+				if d.IsDir() {
 					return nil
 				}
 
@@ -1549,14 +1630,16 @@ func (s *Scanner) scanEnvPatterns() {
 		}
 
 		filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
-			if err != nil || d.IsDir() {
+			if err != nil {
+				return nil
+			}
+			if shouldSkipNodeModulesDir(d) {
+				return filepath.SkipDir
+			}
+			if d.IsDir() {
 				return nil
 			}
 
-			// Skip node_modules and .d.ts
-			if pathHasDirSegment(path, "node_modules") {
-				return nil
-			}
 			name := d.Name()
 			if strings.HasSuffix(name, ".d.ts") {
 				return nil
@@ -1609,12 +1692,13 @@ func (s *Scanner) scanCompromisedNamespaces() {
 		}
 
 		filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
-			if err != nil || d.IsDir() {
+			if err != nil {
 				return nil
 			}
-
-			// Skip node_modules (we scan those separately)
-			if pathHasDirSegment(path, "node_modules") {
+			if shouldSkipNodeModulesDir(d) {
+				return filepath.SkipDir
+			}
+			if d.IsDir() {
 				return nil
 			}
 
@@ -1652,12 +1736,13 @@ func (s *Scanner) scanLockfiles() {
 		}
 
 		filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
-			if err != nil || d.IsDir() {
+			if err != nil {
 				return nil
 			}
-
-			// Skip node_modules
-			if pathHasDirSegment(path, "node_modules") {
+			if shouldSkipNodeModulesDir(d) {
+				return filepath.SkipDir
+			}
+			if d.IsDir() {
 				return nil
 			}
 
@@ -1925,17 +2010,26 @@ func pathHasDirSegment(path, segment string) bool {
 	return pathDirSegmentCount(path, segment) > 0
 }
 
+func shouldSkipNodeModulesDir(d os.DirEntry) bool {
+	return d.IsDir() && d.Name() == "node_modules"
+}
+
 // pathDirSegmentCount counts exact path components named segment.
 func pathDirSegmentCount(path, segment string) int {
 	if segment == "" {
 		return 0
 	}
-	normalized := filepath.ToSlash(filepath.Clean(path))
 	count := 0
-	for _, part := range strings.Split(normalized, "/") {
-		if part == segment {
+	for {
+		dir, file := filepath.Split(path)
+		file = strings.TrimRight(file, string(filepath.Separator))
+		if file == segment {
 			count++
 		}
+		if dir == "" || dir == path {
+			break
+		}
+		path = strings.TrimRight(dir, string(filepath.Separator))
 	}
 	return count
 }

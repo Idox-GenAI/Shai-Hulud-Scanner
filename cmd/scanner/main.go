@@ -16,7 +16,7 @@ import (
 	"shai-hulud-scanner/pkg/update"
 )
 
-var version = "1.2.6"
+var version = "1.3.0"
 
 const defaultReportName = "ShaiHulud-Scan-Report.txt"
 

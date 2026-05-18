@@ -8,6 +8,8 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
+	"sync/atomic"
 	"testing"
 )
 
@@ -208,6 +210,88 @@ func TestCheckAndDownloadFailsMissingChecksumEntry(t *testing.T) {
 	}
 	if result != nil {
 		t.Fatalf("result = %+v, want nil", result)
+	}
+}
+
+func TestDownloadPathRejectsUnsafeAssetNames(t *testing.T) {
+	checker := &Checker{CacheDir: t.TempDir()}
+
+	tests := []string{
+		"../shai-hulud-scanner_1.2.4_linux_amd64.deb",
+		"subdir/shai-hulud-scanner_1.2.4_linux_amd64.deb",
+		`subdir\shai-hulud-scanner_1.2.4_windows_amd64.zip`,
+		"",
+		".",
+		"..",
+	}
+
+	for _, assetName := range tests {
+		t.Run(assetName, func(t *testing.T) {
+			if _, err := checker.downloadPath(assetName); err == nil {
+				t.Fatalf("downloadPath(%q) returned nil error, want unsafe asset name error", assetName)
+			}
+		})
+	}
+}
+
+func TestDownloadPathAcceptsBaseAssetName(t *testing.T) {
+	cacheDir := t.TempDir()
+	const assetName = "shai-hulud-scanner_1.2.4_linux_amd64.deb"
+	checker := &Checker{CacheDir: cacheDir}
+
+	got, err := checker.downloadPath(assetName)
+	if err != nil {
+		t.Fatalf("downloadPath() error = %v", err)
+	}
+	want := filepath.Join(cacheDir, assetName)
+	if got != want {
+		t.Fatalf("downloadPath() = %q, want %q", got, want)
+	}
+}
+
+func TestCheckAndDownloadRejectsUnsafeSelectedAssetBeforeDownload(t *testing.T) {
+	const assetName = "../shai-hulud-scanner_1.2.4_darwin_arm64.pkg"
+	var downloadRequests atomic.Int32
+
+	var serverURL string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/repos/owner/repo/releases/latest":
+			fmt.Fprintf(w, `{
+				"tag_name": "v1.2.4",
+				"assets": [
+					{"name": %q, "browser_download_url": %q}
+				]
+			}`, assetName, serverURL+"/download/asset")
+		case "/download/asset":
+			downloadRequests.Add(1)
+			_, _ = w.Write([]byte("installer package"))
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+	serverURL = server.URL
+
+	checker := &Checker{
+		Owner:      "owner",
+		Repo:       "repo",
+		BaseURL:    server.URL,
+		HTTPClient: server.Client(),
+		GOOS:       "darwin",
+		GOARCH:     "arm64",
+		CacheDir:   t.TempDir(),
+	}
+
+	result, err := checker.CheckAndDownload(context.Background(), "1.2.3")
+	if err == nil || !strings.Contains(err.Error(), "unsafe update asset name") {
+		t.Fatalf("CheckAndDownload() error = %v, want unsafe update asset name error", err)
+	}
+	if result != nil {
+		t.Fatalf("result = %+v, want nil", result)
+	}
+	if downloadRequests.Load() != 0 {
+		t.Fatal("download URL was requested for unsafe asset name")
 	}
 }
 
