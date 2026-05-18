@@ -667,6 +667,9 @@ func TestPackageJSONDependenciesRespectExactVersionPolicy(t *testing.T) {
 			t.Fatalf("version-specific IOC should not match ranges, non-matching versions, or bundled entries without a version, findings: %+v", findings)
 		}
 		if strings.Contains(f.Indicator, "any-bad-plain") {
+			if f.Severity != report.SeverityHigh {
+				t.Fatalf("any-version package.json finding severity = %s, want %s; findings: %+v", f.Severity, report.SeverityHigh, findings)
+			}
 			foundAnyVersion = true
 		}
 	}
@@ -1152,8 +1155,12 @@ func TestNodeModulesVersionConstraints_RespectPackageVersion(t *testing.T) {
 
 	writePkgJSON("1.2.3")
 	rpt = run()
-	if got := len(rpt.GetFindingsByType(report.FindingNodeModules)); got != 1 {
+	nodeFindings := rpt.GetFindingsByType(report.FindingNodeModules)
+	if got := len(nodeFindings); got != 1 {
 		t.Fatalf("matching version should be flagged once, got %d findings: %+v", got, rpt.Findings)
+	}
+	if nodeFindings[0].Severity != report.SeverityHigh {
+		t.Fatalf("node_modules finding severity = %s, want %s; finding: %+v", nodeFindings[0].Severity, report.SeverityHigh, nodeFindings[0])
 	}
 }
 
@@ -1203,6 +1210,9 @@ func TestPackageLockV3NestedPathDetectionAndVersionMatch(t *testing.T) {
 	found := false
 	for _, f := range rpt.GetFindingsByType(report.FindingLockfileCompromised) {
 		if strings.Contains(f.Indicator, "@evil/nested-pkg") {
+			if f.Severity != report.SeverityHigh {
+				t.Fatalf("lockfile finding severity = %s, want %s; finding: %+v", f.Severity, report.SeverityHigh, f)
+			}
 			found = true
 			break
 		}

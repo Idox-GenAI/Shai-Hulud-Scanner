@@ -1099,11 +1099,6 @@ func (s *Scanner) checkPackageJSONBundledDependencies(pkgPath, section string, d
 	}
 }
 
-func (s *Scanner) isCompromisedManifestDependency(pkgName, spec string) bool {
-	_, ok := s.compromisedManifestDependencySeverity("", pkgName, spec)
-	return ok
-}
-
 func (s *Scanner) compromisedManifestDependencySeverity(pkgPath, pkgName, spec string) (report.FindingSeverity, bool) {
 	if s.isCompromisedPackageNoVersion(pkgName) {
 		return report.SeverityHigh, true
@@ -1163,6 +1158,11 @@ type npmSemver struct {
 	prerelease string
 }
 
+type npmRangeBase struct {
+	version   npmSemver
+	precision int
+}
+
 func npmRangeContainsVersion(spec, version string) bool {
 	spec = strings.TrimSpace(spec)
 	if spec == "" || strings.Contains(spec, "||") {
@@ -1188,18 +1188,17 @@ func npmCaretRangeContains(baseSpec string, version npmSemver) bool {
 	if !ok {
 		return false
 	}
-	precision := npmRangeBasePrecision(baseSpec)
-	upper := npmSemver{major: base.major + 1}
-	if base.major == 0 {
-		upper = npmSemver{minor: base.minor + 1}
+	upper := npmSemver{major: base.version.major + 1}
+	if base.version.major == 0 {
+		upper = npmSemver{minor: base.version.minor + 1}
 	}
-	if base.major == 0 && precision == 1 {
+	if base.version.major == 0 && base.precision == 1 {
 		upper = npmSemver{major: 1}
 	}
-	if base.major == 0 && base.minor == 0 && precision == 3 {
-		upper = npmSemver{patch: base.patch + 1}
+	if base.version.major == 0 && base.version.minor == 0 && base.precision == 3 {
+		upper = npmSemver{patch: base.version.patch + 1}
 	}
-	return compareNPMSemver(version, base) >= 0 && compareNPMSemver(version, upper) < 0
+	return compareNPMSemver(version, base.version) >= 0 && compareNPMSemver(version, upper) < 0
 }
 
 func npmTildeRangeContains(baseSpec string, version npmSemver) bool {
@@ -1207,54 +1206,47 @@ func npmTildeRangeContains(baseSpec string, version npmSemver) bool {
 	if !ok {
 		return false
 	}
-	upper := npmSemver{major: base.major, minor: base.minor + 1}
-	if npmRangeBasePrecision(baseSpec) == 1 {
-		upper = npmSemver{major: base.major + 1}
+	upper := npmSemver{major: base.version.major, minor: base.version.minor + 1}
+	if base.precision == 1 {
+		upper = npmSemver{major: base.version.major + 1}
 	}
-	return compareNPMSemver(version, base) >= 0 && compareNPMSemver(version, upper) < 0
+	return compareNPMSemver(version, base.version) >= 0 && compareNPMSemver(version, upper) < 0
 }
 
-func parseNPMRangeBase(raw string) (npmSemver, bool) {
+func parseNPMRangeBase(raw string) (npmRangeBase, bool) {
 	raw = normalizePackageVersion(raw)
 	raw = strings.TrimPrefix(raw, "v")
-	if raw == "" || strings.ContainsAny(raw, "*/:") {
-		return npmSemver{}, false
+	if raw == "" || strings.ContainsAny(raw, "/:") {
+		return npmRangeBase{}, false
 	}
 
 	base, _, _ := strings.Cut(raw, "+")
 	base, prerelease, _ := strings.Cut(base, "-")
 	parts := strings.Split(base, ".")
 	if len(parts) == 0 || len(parts) > 3 {
-		return npmSemver{}, false
+		return npmRangeBase{}, false
 	}
 
 	nums := [3]int{}
+	precision := 0
 	for i, part := range parts {
 		if isNPMWildcardPart(part) {
 			break
 		}
 		n, ok := parseSemverNumber(part)
 		if !ok {
-			return npmSemver{}, false
+			return npmRangeBase{}, false
 		}
 		nums[i] = n
-	}
-	return npmSemver{major: nums[0], minor: nums[1], patch: nums[2], prerelease: prerelease}, true
-}
-
-func npmRangeBasePrecision(raw string) int {
-	raw = normalizePackageVersion(raw)
-	raw = strings.TrimPrefix(raw, "v")
-	base, _, _ := strings.Cut(raw, "+")
-	base, _, _ = strings.Cut(base, "-")
-	precision := 0
-	for _, part := range strings.Split(base, ".") {
-		if isNPMWildcardPart(part) {
-			break
-		}
 		precision++
 	}
-	return precision
+	if precision == 0 {
+		return npmRangeBase{}, false
+	}
+	return npmRangeBase{
+		version:   npmSemver{major: nums[0], minor: nums[1], patch: nums[2], prerelease: prerelease},
+		precision: precision,
+	}, true
 }
 
 func isNPMWildcardPart(part string) bool {
