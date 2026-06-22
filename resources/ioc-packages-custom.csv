@@ -946,3 +946,4 @@ mastra,= 1.13.1
 @mastra/hono,= 1.4.26
 easy-day-js,= 1.11.22
 mastraqqq,= 1.13.1
+@withgoogle/stitch-sdk,= 0.1.1 || = 0.1.2
