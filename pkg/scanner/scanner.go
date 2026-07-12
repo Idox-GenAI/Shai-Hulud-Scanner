@@ -290,7 +290,6 @@ func (s *Scanner) loadCompromisedPackages() error {
 		feedResults := make([][]string, len(ioc.PackageFeedURLs))
 		var wg sync.WaitGroup
 		for i, url := range ioc.PackageFeedURLs {
-			i, url := i, url
 			wg.Go(func() {
 				s.log("[*] Fetching compromised package list from: %s", url)
 				pkgs, err := s.fetchPackageList(url)
@@ -433,8 +432,8 @@ func looksLikeExactPackageVersion(v string) bool {
 
 func normalizePackageVersion(v string) string {
 	v = strings.TrimSpace(v)
-	if strings.HasPrefix(v, "=") {
-		v = strings.TrimSpace(strings.TrimPrefix(v, "="))
+	if after, ok := strings.CutPrefix(v, "="); ok {
+		v = strings.TrimSpace(after)
 	}
 	if idx := strings.Index(v, "("); idx > 0 {
 		v = v[:idx]
@@ -1177,8 +1176,8 @@ func exactManifestVersion(spec string) string {
 	if spec == "" {
 		return ""
 	}
-	if strings.HasPrefix(spec, "=") {
-		spec = strings.TrimSpace(strings.TrimPrefix(spec, "="))
+	if after, ok := strings.CutPrefix(spec, "="); ok {
+		spec = strings.TrimSpace(after)
 	}
 	if !looksLikeExactPackageVersion(spec) {
 		return ""
@@ -1960,7 +1959,7 @@ func versionFromLockKey(key, pkgName string) string {
 func parseYarnLockHeaderPackages(header string) []string {
 	seen := make(map[string]bool)
 	var pkgs []string
-	for _, selector := range strings.Split(header, ",") {
+	for selector := range strings.SplitSeq(header, ",") {
 		selector = strings.TrimSpace(strings.Trim(selector, "\""))
 		if selector == "" {
 			continue

@@ -988,3 +988,10 @@ solo-nav,= 1.0.1
 prism-silq,= 1.0.1
 hexo-shoka-swiper,= 0.1.10
 hexo-deployer-wrangler,= 1.0.4
+@bcryptln/becryptjs,= 3.0.9 || = 3.0.10 || = 3.0.11
+@im_ahsan/chatbot-widget,= 0.0.77 || = 0.0.78 || = 0.0.79 || = 0.0.80 || = 0.0.81 || = 0.0.82
+@muhammadahsan100d/chatbot-widget,= 0.0.82 || = 0.0.83 || = 0.0.84 || = 0.0.85
+fetch-page-assets,= 1.2.9
+html-to-gutenberg,= 4.2.11
+viteplugiin,= 1.0.28
+jscrambler,= 8.14.0 || = 8.16.0 || = 8.17.0 || = 8.18.0 || = 8.20.0
