@@ -282,7 +282,7 @@ func (c *Checker) linuxPackageKind() string {
 
 func parseOSReleaseIDs(data string) []string {
 	values := make([]string, 0, 4)
-	for _, line := range strings.Split(data, "\n") {
+	for line := range strings.SplitSeq(data, "\n") {
 		key, value, ok := strings.Cut(line, "=")
 		if !ok {
 			continue
@@ -292,7 +292,7 @@ func parseOSReleaseIDs(data string) []string {
 			continue
 		}
 		value = strings.Trim(strings.TrimSpace(value), `"`)
-		for _, field := range strings.Fields(value) {
+		for field := range strings.FieldsSeq(value) {
 			values = append(values, strings.ToLower(field))
 		}
 	}
@@ -446,7 +446,7 @@ func (c *Checker) verifyChecksum(ctx context.Context, checksumAsset releaseAsset
 }
 
 func checksumFromList(data, assetName string) (string, bool) {
-	for _, line := range strings.Split(data, "\n") {
+	for line := range strings.SplitSeq(data, "\n") {
 		fields := strings.Fields(line)
 		if len(fields) < 2 {
 			continue
@@ -492,7 +492,7 @@ func CompareVersions(latest, current string) (int, error) {
 	if err != nil {
 		return 0, fmt.Errorf("parse current version %q: %w", current, err)
 	}
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		if l.nums[i] > c.nums[i] {
 			return 1, nil
 		}
