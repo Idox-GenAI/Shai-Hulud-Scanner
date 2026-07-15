@@ -253,7 +253,6 @@ func TestShouldSkipFinding_AllowedPackage(t *testing.T) {
 		AllowPackages: []string{"core-js", "@cypress/*"},
 	}
 
-	// Package findings should check allowPackages
 	if !allowlist.ShouldSkipFinding(report.FindingNodeModules, "core-js", "/project/node_modules/core-js") {
 		t.Error("ShouldSkipFinding() should return true for allowed package (node_modules)")
 	}
@@ -262,7 +261,6 @@ func TestShouldSkipFinding_AllowedPackage(t *testing.T) {
 		t.Error("ShouldSkipFinding() should return true for allowed scoped package (npm-cache)")
 	}
 
-	// Non-package findings should not check allowPackages
 	if allowlist.ShouldSkipFinding(report.FindingCredentialFile, "core-js", "/project/.env") {
 		t.Error("ShouldSkipFinding() should not check allowPackages for non-package findings")
 	}

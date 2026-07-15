@@ -284,7 +284,6 @@ func ParsePackageCSV(r io.Reader) ([]PackageVersionConstraint, error) {
 			continue
 		}
 
-		// Skip header row if present (case-insensitive match on first two columns).
 		if row == 1 && len(rec) >= 2 {
 			h0 := strings.TrimSpace(strings.ToLower(rec[0]))
 			h1 := strings.TrimSpace(strings.ToLower(rec[1]))
@@ -335,7 +334,6 @@ func parseVersionSpec(spec string) []string {
 		if p == "" {
 			continue
 		}
-		// Strip leading '=' used in the feed (e.g. "= 0.0.7").
 		if strings.HasPrefix(p, "=") {
 			p = strings.TrimSpace(p[1:])
 		}

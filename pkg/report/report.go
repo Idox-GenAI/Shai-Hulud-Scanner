@@ -90,6 +90,7 @@ func (f Finding) String() string {
 // Report contains all findings from a scan and metadata.
 type Report struct {
 	Timestamp           time.Time
+	ProgramVersion      string
 	ScanMode            string
 	Duration            time.Duration
 	PathsScanned        []string
@@ -125,6 +126,11 @@ func (r *Report) AddFindingWithSeverity(findingType FindingType, severity Findin
 		Indicator: indicator,
 		Location:  location,
 	})
+}
+
+// SetProgramVersion sets the scanner version recorded in the report.
+func (r *Report) SetProgramVersion(version string) {
+	r.ProgramVersion = version
 }
 
 // SetDuration sets the scan duration.
@@ -163,6 +169,7 @@ func (r *Report) Write(w io.Writer) error {
 	var sb strings.Builder
 
 	sb.WriteString("Shai-Hulud Dynamic Detection Report\n")
+	sb.WriteString(fmt.Sprintf("Program Version: %s\n", r.ProgramVersion))
 	sb.WriteString(fmt.Sprintf("Timestamp: %s\n", r.Timestamp.Format("2006-01-02 15:04:05Z")))
 	sb.WriteString(fmt.Sprintf("Scan Mode: %s\n", strings.ToUpper(r.ScanMode)))
 	sb.WriteString(fmt.Sprintf("Scan Duration: %s\n", r.Duration.Round(time.Second)))
@@ -221,7 +228,6 @@ func (r *Report) PrintSummary(w io.Writer) {
 
 	critical, high, warning := r.CountBySeverity()
 
-	// Critical findings
 	if critical > 0 {
 		fmt.Fprintf(w, "[!!!] CRITICAL FINDINGS: %d (confirmed malware)\n", critical)
 		for _, f := range r.GetFindingsBySeverity(SeverityCritical) {
@@ -231,7 +237,6 @@ func (r *Report) PrintSummary(w io.Writer) {
 		fmt.Fprintln(w)
 	}
 
-	// High severity findings
 	if high > 0 {
 		fmt.Fprintf(w, "[!!] HIGH CONFIDENCE DETECTIONS: %d (requires action)\n", high)
 		for _, f := range r.GetFindingsBySeverity(SeverityHigh) {
@@ -241,7 +246,6 @@ func (r *Report) PrintSummary(w io.Writer) {
 		fmt.Fprintln(w)
 	}
 
-	// Warning findings
 	if warning > 0 {
 		fmt.Fprintf(w, "[!] WARNINGS: %d (review recommended, may be false positives)\n", warning)
 		for _, f := range r.GetFindingsBySeverity(SeverityWarning) {
@@ -251,7 +255,6 @@ func (r *Report) PrintSummary(w io.Writer) {
 		fmt.Fprintln(w)
 	}
 
-	// Print helpful note if only warnings
 	if critical == 0 && high == 0 && warning > 0 {
 		fmt.Fprintln(w, "NOTE: Only warnings were found. Common packages like core-js, cypress, and")
 		fmt.Fprintln(w, "      angular may trigger these. Use --strict to fail on warnings.")

@@ -60,7 +60,6 @@ func (a *Allowlist) IsPathAllowed(path string) bool {
 		return false
 	}
 
-	// Normalize path separators
 	normalizedPath := filepath.ToSlash(path)
 
 	for _, pattern := range a.AllowPaths {
@@ -93,17 +92,14 @@ func (a *Allowlist) ShouldSkipFinding(ft report.FindingType, indicator, location
 		return false
 	}
 
-	// Check if finding type is disabled
 	if a.IsFindingTypeDisabled(ft) {
 		return true
 	}
 
-	// Check if path is allowed
 	if a.IsPathAllowed(location) {
 		return true
 	}
 
-	// For package-related findings, check if package is allowed
 	if ft == report.FindingNodeModules || ft == report.FindingNpmCache {
 		if a.IsPackageAllowed(indicator) {
 			return true
@@ -116,12 +112,10 @@ func (a *Allowlist) ShouldSkipFinding(ft report.FindingType, indicator, location
 // matchPattern performs simple pattern matching with wildcard support.
 // Supports patterns like "core-js", "@cypress/*", "*-loader".
 func matchPattern(pattern, value string) bool {
-	// Exact match
 	if pattern == value {
 		return true
 	}
 
-	// Check for wildcard patterns
 	if strings.Contains(pattern, "*") {
 		return matchWildcard(pattern, value)
 	}
@@ -129,9 +123,7 @@ func matchPattern(pattern, value string) bool {
 	return false
 }
 
-// matchWildcard performs wildcard matching.
 func matchWildcard(pattern, value string) bool {
-	// Handle @scope/* pattern
 	if before, ok := strings.CutSuffix(pattern, "/*"); ok {
 		prefix := before
 		if strings.HasPrefix(value, prefix+"/") {
@@ -139,7 +131,6 @@ func matchWildcard(pattern, value string) bool {
 		}
 	}
 
-	// Handle *-suffix pattern
 	if after, ok := strings.CutPrefix(pattern, "*"); ok {
 		suffix := after
 		if strings.HasSuffix(value, suffix) {
@@ -147,7 +138,6 @@ func matchWildcard(pattern, value string) bool {
 		}
 	}
 
-	// Handle prefix-* pattern
 	if before, ok := strings.CutSuffix(pattern, "*"); ok {
 		prefix := before
 		if strings.HasPrefix(value, prefix) {
@@ -207,7 +197,6 @@ func matchGlobPathSegment(pattern, segment string) bool {
 	parts := strings.Split(pattern, "*")
 	pos := 0
 
-	// Prefix anchor
 	if first := parts[0]; first != "" {
 		if !strings.HasPrefix(segment, first) {
 			return false
@@ -215,7 +204,6 @@ func matchGlobPathSegment(pattern, segment string) bool {
 		pos = len(first)
 	}
 
-	// Middle fragments
 	for _, part := range parts[1 : len(parts)-1] {
 		if part == "" {
 			continue
@@ -227,7 +215,6 @@ func matchGlobPathSegment(pattern, segment string) bool {
 		pos += idx + len(part)
 	}
 
-	// Suffix anchor
 	last := parts[len(parts)-1]
 	if last == "" {
 		return true

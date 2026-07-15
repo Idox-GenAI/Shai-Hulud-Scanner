@@ -452,7 +452,6 @@ func TestCompromisedNamespacesList(t *testing.T) {
 		}
 	}
 
-	// Ensure all namespaces start with @
 	for _, ns := range ioc.CompromisedNamespaces {
 		if !strings.HasPrefix(ns, "@") {
 			t.Errorf("CompromisedNamespace should start with @: %s", ns)
@@ -487,7 +486,6 @@ func TestCompromisedNamespacesIncludesCustomCSVScopes(t *testing.T) {
 }
 
 func TestNewMaliciousSHA256Hashes(t *testing.T) {
-	// Test that new hashes from the shell script are present
 	newHashes := []string{
 		"de0e25a3e6c1e1e5998b306b7141b3dc4c0088da9d7bb47c1c00c91e6e4f85d6",
 		"81d2a004a1bca6ef87a1caf7d0e0b355ad1764238e40ff6d1b1cb77ad4f595c3",

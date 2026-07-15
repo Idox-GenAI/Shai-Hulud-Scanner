@@ -16,7 +16,7 @@ import (
 	"shai-hulud-scanner/pkg/update"
 )
 
-var version = "1.3.0"
+var version = "1.3.4"
 
 const defaultReportName = "ShaiHulud-Scan-Report.txt"
 
@@ -75,7 +75,6 @@ func exitCodeForReport(rpt *report.Report, strict, reportWriteFailed bool) int {
 		return 0
 	}
 
-	// Critical findings always win.
 	if rpt.IsCritical() {
 		return 2
 	}
@@ -92,7 +91,6 @@ func exitCodeForReport(rpt *report.Report, strict, reportWriteFailed bool) int {
 }
 
 func main() {
-	// Define flags
 	var (
 		mode        = flag.String("mode", "quick", "Scan mode: quick or full")
 		reportPath  = flag.String("report", "./"+defaultReportName, "Report output path")
@@ -111,16 +109,11 @@ func main() {
 
 	flag.Parse()
 
-	// Normalize report path: if a directory is provided, place the report file
-	// inside that directory using the default report name.
 	resolvedReportPath := *reportPath
 	if info, err := os.Stat(resolvedReportPath); err == nil && info.IsDir() {
 		resolvedReportPath = filepath.Join(resolvedReportPath, defaultReportName)
 	} else {
-		// If the path does not currently exist but clearly looks like a directory
-		// (for example, ends with a path separator), treat it as a directory and
-		// append the default report name. This keeps behavior intuitive when
-		// users pass values like "/tmp/" or "./reports/".
+		// A trailing separator denotes a directory even if it does not exist yet.
 		if strings.HasSuffix(resolvedReportPath, string(os.PathSeparator)) {
 			resolvedReportPath = filepath.Join(resolvedReportPath, defaultReportName)
 		}
@@ -144,14 +137,12 @@ func main() {
 		os.Exit(0)
 	}
 
-	// Validate mode
 	scanMode := strings.ToLower(*mode)
 	if scanMode != "quick" && scanMode != "full" {
 		fmt.Fprintf(os.Stderr, "Error: Invalid mode '%s'. Use 'quick' or 'full'.\n", *mode)
 		os.Exit(1)
 	}
 
-	// Get root paths from remaining arguments or use default
 	rootPaths := flag.Args()
 	if len(rootPaths) == 0 {
 		homeDir, err := os.UserHomeDir()
@@ -179,7 +170,6 @@ func main() {
 		fmt.Println()
 	}
 
-	// Load allowlist configuration if specified
 	var allowlist *config.Allowlist
 	if *configPath != "" {
 		var err error
@@ -219,6 +209,7 @@ func main() {
 		fmt.Fprintf(os.Stderr, "Error during scan: %v\n", err)
 		os.Exit(1)
 	}
+	rpt.SetProgramVersion(version)
 
 	rpt.PrintSummary(os.Stdout)
 
