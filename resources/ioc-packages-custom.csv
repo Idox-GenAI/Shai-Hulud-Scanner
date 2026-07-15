@@ -995,3 +995,7 @@ fetch-page-assets,= 1.2.9
 html-to-gutenberg,= 4.2.11
 viteplugiin,= 1.0.28
 jscrambler,= 8.14.0 || = 8.16.0 || = 8.17.0 || = 8.18.0 || = 8.20.0
+@asyncapi/generator,= 3.3.1
+@asyncapi/generator-helpers,= 1.1.1
+@asyncapi/generator-components,= 0.7.1
+@asyncapi/specs,= 6.11.2 || = 6.11.2-alpha.1

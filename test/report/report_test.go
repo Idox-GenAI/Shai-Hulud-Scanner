@@ -199,6 +199,7 @@ func TestWrite_NoFindings(t *testing.T) {
 
 func TestWriteToFile(t *testing.T) {
 	r := report.NewReport("quick", []string{"/home"})
+	r.SetProgramVersion("1.3.0-test")
 	r.SetDuration(3 * time.Second)
 	r.AddFinding(report.FindingFileArtifact, "shai-hulud.js", "/path/to/file")
 
@@ -218,6 +219,9 @@ func TestWriteToFile(t *testing.T) {
 	}
 	if !strings.Contains(string(content), "Shai-Hulud") {
 		t.Error("WriteToFile() content missing expected header")
+	}
+	if !strings.Contains(string(content), "Program Version: 1.3.0-test") {
+		t.Error("WriteToFile() content missing program version")
 	}
 }
 
@@ -341,18 +345,15 @@ func TestSeverityClassification(t *testing.T) {
 func TestHasHighSeverity(t *testing.T) {
 	r := report.NewReport("quick", []string{"/home"})
 
-	// No findings
 	if r.HasHighSeverity() {
 		t.Error("HasHighSeverity() should return false for empty report")
 	}
 
-	// Add warning-level finding
 	r.AddFinding(report.FindingCredentialFile, ".env", "/path/.env")
 	if r.HasHighSeverity() {
 		t.Error("HasHighSeverity() should return false for warning-only report")
 	}
 
-	// Add high-level finding
 	r.AddFinding(report.FindingNodeModules, "bad-pkg", "/path/node_modules/bad-pkg")
 	if !r.HasHighSeverity() {
 		t.Error("HasHighSeverity() should return true when high-severity finding exists")

@@ -161,7 +161,6 @@ func (s *Scanner) Run() (*report.Report, error) {
 		s.log("[Quick] Skipping npm cache scan (use --mode full)")
 	}
 
-	// Run parallel scans for file-based checks
 	var wg sync.WaitGroup
 
 	s.logSection("Scanning for known Shai-Hulud artifact files")
@@ -235,7 +234,6 @@ func (s *Scanner) Run() (*report.Report, error) {
 		s.log("[Quick] Skipping env+exfil pattern scan (use --mode full)")
 	}
 
-	// Wait for all parallel scans to complete
 	wg.Wait()
 
 	s.report.SetDuration(time.Since(startTime))
@@ -324,7 +322,6 @@ func (s *Scanner) loadCompromisedPackages() error {
 		}
 	}
 
-	// Parse package identifiers and optional exact-version constraints.
 	for _, raw := range allPackages {
 		token := compromisedPackageToken(raw)
 		if token == "" {
@@ -573,7 +570,6 @@ func (s *Scanner) findNodeModules() []string {
 		}
 
 		if s.config.ScanMode == ScanModeQuick {
-			// Quick mode: only check root and immediate subdirectories
 			nmPath := filepath.Join(root, "node_modules")
 			if info, err := os.Stat(nmPath); err == nil && info.IsDir() {
 				if !seen[nmPath] {
@@ -596,7 +592,6 @@ func (s *Scanner) findNodeModules() []string {
 				}
 			}
 		} else {
-			// Full mode: recursive search
 			filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
 				if err != nil {
 					return nil
@@ -656,7 +651,6 @@ func (s *Scanner) scanNodeModulesDir(nm string) {
 		childPath := filepath.Join(nm, name)
 
 		if strings.HasPrefix(name, "@") {
-			// Scoped package
 			if !s.scopes[name] {
 				continue
 			}
@@ -679,7 +673,6 @@ func (s *Scanner) scanNodeModulesDir(nm string) {
 				}
 			}
 		} else {
-			// Unscoped package
 			if s.compromisedPkgs[name] && s.isCompromisedInstalledPackage(name, childPath) {
 				s.addFinding(report.FindingNodeModules, name, childPath)
 				s.log("    [!] FOUND: %s at %s", name, nm)
@@ -689,7 +682,6 @@ func (s *Scanner) scanNodeModulesDir(nm string) {
 }
 
 func (s *Scanner) getNpmCachePath() string {
-	// Try npm config
 	cmd := exec.Command("npm", "config", "get", "cache")
 	output, err := cmd.Output()
 	if err == nil {
@@ -701,7 +693,6 @@ func (s *Scanner) getNpmCachePath() string {
 		}
 	}
 
-	// Platform-specific defaults
 	homeDir, _ := os.UserHomeDir()
 	switch runtime.GOOS {
 	case "windows":
@@ -734,9 +725,7 @@ func (s *Scanner) scanNpmCache(cachePath string) {
 			s.log("    [!] FOUND in cache: %s", name)
 			return filepath.SkipDir
 		}
-		// Check scoped
 		if strings.HasPrefix(name, "@") && s.scopes[name] {
-			// Check subdirectories for package names
 			subEntries, _ := os.ReadDir(path)
 			for _, sub := range subEntries {
 				if sub.IsDir() && s.compromisedScope[name] != nil && s.compromisedScope[name][sub.Name()] {
@@ -769,7 +758,6 @@ func (s *Scanner) scanMaliciousFiles() {
 		}
 
 		if s.config.ScanMode == ScanModeQuick {
-			// Quick mode: check root and .github/workflows only
 			for _, fname := range ioc.MaliciousFileNames {
 				fpath := filepath.Join(root, fname)
 				if _, err := os.Stat(fpath); err == nil {
@@ -784,7 +772,6 @@ func (s *Scanner) scanMaliciousFiles() {
 				}
 			}
 		} else {
-			// Full mode: recursive search
 			malNames := make(map[string]bool)
 			for _, n := range ioc.MaliciousFileNames {
 				malNames[n] = true
@@ -829,7 +816,6 @@ func (s *Scanner) scanGit() {
 		var gitDirs []string
 
 		if s.config.ScanMode == ScanModeQuick {
-			// Quick mode: check root and immediate subdirectories
 			gitPath := filepath.Join(root, ".git")
 			if info, err := os.Stat(gitPath); err == nil && info.IsDir() {
 				gitDirs = append(gitDirs, gitPath)
@@ -849,7 +835,6 @@ func (s *Scanner) scanGit() {
 				count++
 			}
 		} else {
-			// Full mode: recursive search
 			filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
 				if err != nil {
 					return nil
@@ -873,7 +858,6 @@ func (s *Scanner) scanGit() {
 }
 
 func (s *Scanner) checkGitRepo(repoDir string) {
-	// Check branches
 	cmd := exec.Command("git", "-C", repoDir, "branch", "-a")
 	output, err := cmd.Output()
 	if err == nil {
@@ -887,7 +871,6 @@ func (s *Scanner) checkGitRepo(repoDir string) {
 		}
 	}
 
-	// Check remotes
 	cmd = exec.Command("git", "-C", repoDir, "remote", "-v")
 	output, err = cmd.Output()
 	if err == nil {
@@ -914,7 +897,6 @@ func (s *Scanner) scanWorkflows() {
 				return filepath.SkipDir
 			}
 			if d.IsDir() && strings.HasSuffix(path, filepath.Join(".github", "workflows")) {
-				// Scan workflow files in this directory
 				wfEntries, _ := os.ReadDir(path)
 				for _, wf := range wfEntries {
 					if wf.IsDir() {
@@ -927,13 +909,11 @@ func (s *Scanner) scanWorkflows() {
 
 					wfPath := filepath.Join(path, name)
 
-					// Check for suspicious workflow name patterns
 					if formatterRegex.MatchString(name) {
 						s.addFinding(report.FindingWorkflowPattern, "Suspicious workflow name: "+name, wfPath)
 						s.log("    [!] SUSPICIOUS workflow: %s", wfPath)
 					}
 
-					// Check workflow content
 					content, err := os.ReadFile(wfPath)
 					if err != nil {
 						continue
@@ -966,7 +946,6 @@ func (s *Scanner) scanCredentials() {
 		}
 
 		if s.config.ScanMode == ScanModeFull {
-			// Find all .env* files
 			filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
 				if err != nil {
 					return nil
@@ -983,7 +962,6 @@ func (s *Scanner) scanCredentials() {
 				return nil
 			})
 		} else {
-			// Quick mode: just check root .env
 			envPath := filepath.Join(root, ".env")
 			if _, err := os.Stat(envPath); err == nil {
 				s.addFinding(report.FindingCredentialFile, ".env file", envPath)
@@ -1042,11 +1020,9 @@ func (s *Scanner) scanHooks() {
 		}
 
 		if s.config.ScanMode == ScanModeQuick {
-			// Quick mode: only check root package.json
 			pkgPath := filepath.Join(root, "package.json")
 			s.checkPackageJson(pkgPath)
 		} else {
-			// Full mode: find all package.json files
 			filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
 				if err != nil {
 					return nil
@@ -1057,7 +1033,6 @@ func (s *Scanner) scanHooks() {
 					}
 					return nil
 				}
-				// Skip deeply nested node_modules
 				if pathDirSegmentCount(path, "node_modules") > 1 {
 					return nil
 				}
@@ -1478,7 +1453,6 @@ func (s *Scanner) scanHashes() {
 		}
 
 		if s.config.ScanMode == ScanModeQuick {
-			// Quick mode: only check files with suspicious names
 			filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
 				if err != nil {
 					return nil
@@ -1489,7 +1463,6 @@ func (s *Scanner) scanHashes() {
 					}
 					return nil
 				}
-				// Skip deeply nested node_modules
 				if pathDirSegmentCount(path, "node_modules") > 1 {
 					return nil
 				}
@@ -1499,7 +1472,6 @@ func (s *Scanner) scanHashes() {
 				return nil
 			})
 		} else {
-			// Full mode: check all .js and .ts files
 			filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
 				if err != nil || d.IsDir() {
 					return nil
@@ -1553,12 +1525,10 @@ func (s *Scanner) scanMigrationSuffix() {
 				return filepath.SkipDir
 			}
 
-			// Check for -migration directories
 			if strings.HasSuffix(d.Name(), "-migration") {
 				s.addFinding(report.FindingMigrationAttack, "Directory ends with -migration", path)
 			}
 
-			// Check git remotes for -migration
 			if d.Name() == ".git" {
 				repoDir := filepath.Dir(path)
 				cmd := exec.Command("git", "-C", repoDir, "remote", "-v")
@@ -1575,7 +1545,6 @@ func (s *Scanner) scanMigrationSuffix() {
 }
 
 func (s *Scanner) scanTrufflehog() {
-	// Check if trufflehog is in PATH
 	if path, err := exec.LookPath("trufflehog"); err == nil {
 		s.addFinding(report.FindingTrufflehog, "TruffleHog in PATH", path)
 	}
@@ -1595,12 +1564,10 @@ func (s *Scanner) scanTrufflehog() {
 				}
 
 				name := d.Name()
-				// Check for trufflehog binary
 				if name == "trufflehog" || name == "trufflehog.exe" {
 					s.addFinding(report.FindingTrufflehog, "TruffleHog binary", path)
 				}
 
-				// Check package.json for trufflehog references
 				if name == "package.json" && pathDirSegmentCount(path, "node_modules") < 2 {
 					content, err := os.ReadFile(path)
 					if err == nil && strings.Contains(strings.ToLower(string(content)), "trufflehog") {
@@ -1712,7 +1679,6 @@ func (s *Scanner) scanCompromisedNamespaces() {
 
 			contentStr := string(content)
 			for _, ns := range ioc.CompromisedNamespaces {
-				// Check if the namespace appears in the package.json
 				if strings.Contains(contentStr, "\""+ns+"/") {
 					s.addFinding(report.FindingCompromisedNS,
 						fmt.Sprintf("Package from compromised namespace: %s", ns),
@@ -1849,24 +1815,20 @@ func (s *Scanner) scanPnpmLock(lockPath string) {
 			continue
 		}
 
-		// Look for package entries (start with / and contain @version)
 		if !strings.HasPrefix(line, "/") {
 			continue
 		}
 
-		// Format: /@scope/name@version: or /name@version:
 		line = strings.TrimPrefix(line, "/")
 		line = strings.TrimSuffix(line, ":")
 
 		var pkgName string
 		if strings.HasPrefix(line, "@") {
-			// Scoped: @scope/name@version
 			parts := strings.SplitN(line, "@", 3)
 			if len(parts) >= 2 {
 				pkgName = "@" + parts[1]
 			}
 		} else {
-			// Unscoped: name@version
 			parts := strings.SplitN(line, "@", 2)
 			if len(parts) >= 1 {
 				pkgName = parts[0]
