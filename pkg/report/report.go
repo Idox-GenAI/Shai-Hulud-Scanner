@@ -2,6 +2,7 @@
 package report
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -159,9 +160,9 @@ func (r *Report) WriteToFile(filepath string) error {
 	if err != nil {
 		return fmt.Errorf("failed to create report file: %w", err)
 	}
-	defer f.Close()
-
-	return r.Write(f)
+	writeErr := r.Write(f)
+	closeErr := f.Close()
+	return errors.Join(writeErr, closeErr)
 }
 
 // Write writes the report to an io.Writer.
@@ -169,26 +170,26 @@ func (r *Report) Write(w io.Writer) error {
 	var sb strings.Builder
 
 	sb.WriteString("Shai-Hulud Dynamic Detection Report\n")
-	sb.WriteString(fmt.Sprintf("Program Version: %s\n", r.ProgramVersion))
-	sb.WriteString(fmt.Sprintf("Timestamp: %s\n", r.Timestamp.Format("2006-01-02 15:04:05Z")))
-	sb.WriteString(fmt.Sprintf("Scan Mode: %s\n", strings.ToUpper(r.ScanMode)))
-	sb.WriteString(fmt.Sprintf("Scan Duration: %s\n", r.Duration.Round(time.Second)))
-	sb.WriteString(fmt.Sprintf("Paths Scanned: %s\n", strings.Join(r.PathsScanned, ", ")))
+	writef(&sb, "Program Version: %s\n", r.ProgramVersion)
+	writef(&sb, "Timestamp: %s\n", r.Timestamp.Format("2006-01-02 15:04:05Z"))
+	writef(&sb, "Scan Mode: %s\n", strings.ToUpper(r.ScanMode))
+	writef(&sb, "Scan Duration: %s\n", r.Duration.Round(time.Second))
+	writef(&sb, "Paths Scanned: %s\n", strings.Join(r.PathsScanned, ", "))
 	sb.WriteString("\n")
-	sb.WriteString(fmt.Sprintf("Compromised packages loaded: %d\n", r.CompromisedPkgCount))
+	writef(&sb, "Compromised packages loaded: %d\n", r.CompromisedPkgCount)
 	sb.WriteString("\n")
 
 	if !r.HasFindings() {
 		sb.WriteString("No indicators of compromise found in scanned locations.\n")
 	} else {
 		critical, high, warning := r.CountBySeverity()
-		sb.WriteString(fmt.Sprintf("Findings Summary: %d critical, %d high, %d warnings\n", critical, high, warning))
+		writef(&sb, "Findings Summary: %d critical, %d high, %d warnings\n", critical, high, warning)
 		sb.WriteString("\n")
 
 		if critical > 0 {
 			sb.WriteString("=== CRITICAL FINDINGS (confirmed malware) ===\n")
 			for _, f := range r.GetFindingsBySeverity(SeverityCritical) {
-				sb.WriteString(fmt.Sprintf("Type: %s | Indicator: %s | Location: %s\n", f.Type, f.Indicator, f.Location))
+				writef(&sb, "Type: %s | Indicator: %s | Location: %s\n", f.Type, f.Indicator, f.Location)
 			}
 			sb.WriteString("\n")
 		}
@@ -196,7 +197,7 @@ func (r *Report) Write(w io.Writer) error {
 		if high > 0 {
 			sb.WriteString("=== HIGH CONFIDENCE DETECTIONS (requires action) ===\n")
 			for _, f := range r.GetFindingsBySeverity(SeverityHigh) {
-				sb.WriteString(fmt.Sprintf("Type: %s | Indicator: %s | Location: %s\n", f.Type, f.Indicator, f.Location))
+				writef(&sb, "Type: %s | Indicator: %s | Location: %s\n", f.Type, f.Indicator, f.Location)
 			}
 			sb.WriteString("\n")
 		}
@@ -204,7 +205,7 @@ func (r *Report) Write(w io.Writer) error {
 		if warning > 0 {
 			sb.WriteString("=== WARNINGS (review recommended, may be false positives) ===\n")
 			for _, f := range r.GetFindingsBySeverity(SeverityWarning) {
-				sb.WriteString(fmt.Sprintf("Type: %s | Indicator: %s | Location: %s\n", f.Type, f.Indicator, f.Location))
+				writef(&sb, "Type: %s | Indicator: %s | Location: %s\n", f.Type, f.Indicator, f.Location)
 			}
 			sb.WriteString("\n")
 		}
@@ -216,49 +217,57 @@ func (r *Report) Write(w io.Writer) error {
 
 // PrintSummary prints a summary of the findings to stdout, grouped by severity.
 func (r *Report) PrintSummary(w io.Writer) {
-	fmt.Fprintln(w)
-	fmt.Fprintln(w, "---- Scan Results ----")
-	fmt.Fprintf(w, "[*] Scan completed in %s (%s mode)\n", r.Duration.Round(time.Second), strings.ToUpper(r.ScanMode))
-	fmt.Fprintln(w)
+	writeln(w)
+	writeln(w, "---- Scan Results ----")
+	writef(w, "[*] Scan completed in %s (%s mode)\n", r.Duration.Round(time.Second), strings.ToUpper(r.ScanMode))
+	writeln(w)
 
 	if !r.HasFindings() {
-		fmt.Fprintln(w, "[OK] No indicators of Shai-Hulud compromise were found in the scanned locations.")
+		writeln(w, "[OK] No indicators of Shai-Hulud compromise were found in the scanned locations.")
 		return
 	}
 
 	critical, high, warning := r.CountBySeverity()
 
 	if critical > 0 {
-		fmt.Fprintf(w, "[!!!] CRITICAL FINDINGS: %d (confirmed malware)\n", critical)
+		writef(w, "[!!!] CRITICAL FINDINGS: %d (confirmed malware)\n", critical)
 		for _, f := range r.GetFindingsBySeverity(SeverityCritical) {
-			fmt.Fprintf(w, "  [%s] %s\n", f.Type, f.Indicator)
-			fmt.Fprintf(w, "         %s\n", f.Location)
+			writef(w, "  [%s] %s\n", f.Type, f.Indicator)
+			writef(w, "         %s\n", f.Location)
 		}
-		fmt.Fprintln(w)
+		writeln(w)
 	}
 
 	if high > 0 {
-		fmt.Fprintf(w, "[!!] HIGH CONFIDENCE DETECTIONS: %d (requires action)\n", high)
+		writef(w, "[!!] HIGH CONFIDENCE DETECTIONS: %d (requires action)\n", high)
 		for _, f := range r.GetFindingsBySeverity(SeverityHigh) {
-			fmt.Fprintf(w, "  [%s] %s\n", f.Type, f.Indicator)
-			fmt.Fprintf(w, "         %s\n", f.Location)
+			writef(w, "  [%s] %s\n", f.Type, f.Indicator)
+			writef(w, "         %s\n", f.Location)
 		}
-		fmt.Fprintln(w)
+		writeln(w)
 	}
 
 	if warning > 0 {
-		fmt.Fprintf(w, "[!] WARNINGS: %d (review recommended, may be false positives)\n", warning)
+		writef(w, "[!] WARNINGS: %d (review recommended, may be false positives)\n", warning)
 		for _, f := range r.GetFindingsBySeverity(SeverityWarning) {
-			fmt.Fprintf(w, "  [%s] %s\n", f.Type, f.Indicator)
-			fmt.Fprintf(w, "         %s\n", f.Location)
+			writef(w, "  [%s] %s\n", f.Type, f.Indicator)
+			writef(w, "         %s\n", f.Location)
 		}
-		fmt.Fprintln(w)
+		writeln(w)
 	}
 
 	if critical == 0 && high == 0 && warning > 0 {
-		fmt.Fprintln(w, "NOTE: Only warnings were found. Common packages like core-js, cypress, and")
-		fmt.Fprintln(w, "      angular may trigger these. Use --strict to fail on warnings.")
+		writeln(w, "NOTE: Only warnings were found. Common packages like core-js, cypress, and")
+		writeln(w, "      angular may trigger these. Use --strict to fail on warnings.")
 	}
+}
+
+func writef(w io.Writer, format string, args ...any) {
+	_, _ = fmt.Fprintf(w, format, args...)
+}
+
+func writeln(w io.Writer, args ...any) {
+	_, _ = fmt.Fprintln(w, args...)
 }
 
 // GetFindingsByType returns all findings of a specific type.

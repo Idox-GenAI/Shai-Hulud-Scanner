@@ -3,7 +3,7 @@ CMD_DIR      := ./cmd/scanner
 BIN_DIR      := bin
 DIST_DIR     := dist
 
-.PHONY: debug test clean release-build fmt vet
+.PHONY: debug test clean release-build fmt fmt-check vet lint
 
 all: debug
 
@@ -20,9 +20,17 @@ test:
 fmt:
 	go fmt ./...
 
+# Verify Go formatting without changing files
+fmt-check:
+	golangci-lint fmt --diff
+
 # Run go vet static analysis
 vet:
 	go vet ./...
+
+# Run the repository lint and security-analysis policy
+lint:
+	golangci-lint run ./...
 
 # Clean build artifacts
 clean:

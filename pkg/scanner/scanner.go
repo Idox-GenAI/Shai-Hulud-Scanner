@@ -3,15 +3,20 @@ package scanner
 
 import (
 	"bufio"
+	"bytes"
+	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"regexp"
 	"runtime"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -21,6 +26,7 @@ import (
 	"shai-hulud-scanner/pkg/hash"
 	"shai-hulud-scanner/pkg/ioc"
 	"shai-hulud-scanner/pkg/report"
+	"shai-hulud-scanner/resources"
 )
 
 // ScanMode represents the scanning intensity.
@@ -242,14 +248,20 @@ func (s *Scanner) Run() (*report.Report, error) {
 
 func (s *Scanner) log(format string, args ...any) {
 	s.mu.Lock()
-	fmt.Fprintf(s.config.Output, format+"\n", args...)
+	_, _ = fmt.Fprintf(s.config.Output, format+"\n", args...)
 	s.mu.Unlock()
 }
 
 func (s *Scanner) logSection(title string) {
 	s.mu.Lock()
-	fmt.Fprintf(s.config.Output, "\n---- %s ----\n", title)
+	_, _ = fmt.Fprintf(s.config.Output, "\n---- %s ----\n", title)
 	s.mu.Unlock()
+}
+
+func (s *Scanner) walkDir(root string, walkFn fs.WalkDirFunc) {
+	if err := filepath.WalkDir(root, walkFn); err != nil {
+		s.log("[!] Unable to finish walking %s: %v", root, err)
+	}
 }
 
 func (s *Scanner) countScopedPackages() int {
@@ -262,6 +274,13 @@ func (s *Scanner) countScopedPackages() int {
 
 func (s *Scanner) loadCompromisedPackages() error {
 	var allPackages []string
+	embeddedConstraints, err := ioc.ParsePackageCSV(bytes.NewReader(resources.IOCPackagesCustomCSV))
+	if err != nil {
+		return fmt.Errorf("parse embedded custom package IOCs: %w", err)
+	}
+	for _, constraint := range embeddedConstraints {
+		s.addCompromisedPackage(constraint.Package, constraint.Versions)
+	}
 
 	// Prefer a fresh cache (<24h old) when available to avoid unnecessary
 	// network requests and keep behavior predictable in offline scenarios.
@@ -500,11 +519,17 @@ func (s *Scanner) isCompromisedInstalledPackage(pkgName, pkgDir string) bool {
 
 func (s *Scanner) fetchPackageList(url string) ([]string, error) {
 	client := &http.Client{Timeout: 30 * time.Second}
-	resp, err := client.Get(url)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("HTTP %d", resp.StatusCode)
@@ -526,7 +551,7 @@ func (s *Scanner) loadCacheFile() ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	var packages []string
 	scanner := bufio.NewScanner(f)
@@ -539,9 +564,9 @@ func (s *Scanner) loadCacheFile() ([]string, error) {
 	return packages, scanner.Err()
 }
 
-func (s *Scanner) saveCacheFile(packages []string) error {
+func (s *Scanner) saveCacheFile(packages []string) (err error) {
 	if dir := filepath.Dir(s.config.CacheFile); dir != "" && dir != "." {
-		if err := os.MkdirAll(dir, 0o755); err != nil {
+		if err := os.MkdirAll(dir, 0o750); err != nil {
 			return err
 		}
 	}
@@ -549,7 +574,7 @@ func (s *Scanner) saveCacheFile(packages []string) error {
 	if err != nil {
 		return err
 	}
-	defer f.Close()
+	defer func() { err = errors.Join(err, f.Close()) }()
 
 	for _, pkg := range packages {
 		if _, err := fmt.Fprintln(f, pkg); err != nil {
@@ -592,7 +617,7 @@ func (s *Scanner) findNodeModules() []string {
 				}
 			}
 		} else {
-			filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
+			s.walkDir(root, func(path string, d os.DirEntry, err error) error {
 				if err != nil {
 					return nil
 				}
@@ -682,7 +707,9 @@ func (s *Scanner) scanNodeModulesDir(nm string) {
 }
 
 func (s *Scanner) getNpmCachePath() string {
-	cmd := exec.Command("npm", "config", "get", "cache")
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	cmd := exec.CommandContext(ctx, "npm", "config", "get", "cache")
 	output, err := cmd.Output()
 	if err == nil {
 		cachePath := strings.TrimSpace(string(output))
@@ -712,7 +739,7 @@ func (s *Scanner) scanNpmCache(cachePath string) {
 
 	s.log("[*] Scanning npm cache at: %s", cachePath)
 
-	filepath.WalkDir(cachePath, func(path string, d os.DirEntry, err error) error {
+	s.walkDir(cachePath, func(path string, d os.DirEntry, err error) error {
 		if err != nil || !d.IsDir() {
 			return nil
 		}
@@ -777,7 +804,7 @@ func (s *Scanner) scanMaliciousFiles() {
 				malNames[n] = true
 			}
 
-			filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
+			s.walkDir(root, func(path string, d os.DirEntry, err error) error {
 				if err != nil || d.IsDir() {
 					return nil
 				}
@@ -835,7 +862,7 @@ func (s *Scanner) scanGit() {
 				count++
 			}
 		} else {
-			filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
+			s.walkDir(root, func(path string, d os.DirEntry, err error) error {
 				if err != nil {
 					return nil
 				}
@@ -858,8 +885,7 @@ func (s *Scanner) scanGit() {
 }
 
 func (s *Scanner) checkGitRepo(repoDir string) {
-	cmd := exec.Command("git", "-C", repoDir, "branch", "-a")
-	output, err := cmd.Output()
+	output, err := gitOutput(repoDir, "branch", "-a")
 	if err == nil {
 		branches := string(output)
 		for line := range strings.SplitSeq(branches, "\n") {
@@ -871,14 +897,20 @@ func (s *Scanner) checkGitRepo(repoDir string) {
 		}
 	}
 
-	cmd = exec.Command("git", "-C", repoDir, "remote", "-v")
-	output, err = cmd.Output()
+	output, err = gitOutput(repoDir, "remote", "-v")
 	if err == nil {
 		remotes := string(output)
-		if strings.Contains(strings.ToLower(remotes), "shai-hulud") {
-			s.addFinding(report.FindingGitRemote, "Remote contains 'Shai-Hulud'", repoDir)
+		if pattern, found := ioc.ContainsSuspiciousGitRemotePattern(remotes); found {
+			s.addFinding(report.FindingGitRemote, "Remote contains known malicious repository path: "+pattern, repoDir)
 		}
 	}
+}
+
+func gitOutput(repoDir string, args ...string) ([]byte, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	commandArgs := append([]string{"-C", repoDir}, args...)
+	return exec.CommandContext(ctx, "git", commandArgs...).Output()
 }
 
 func (s *Scanner) scanWorkflows() {
@@ -889,7 +921,7 @@ func (s *Scanner) scanWorkflows() {
 			continue
 		}
 
-		filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
+		s.walkDir(root, func(path string, d os.DirEntry, err error) error {
 			if err != nil {
 				return nil
 			}
@@ -946,7 +978,7 @@ func (s *Scanner) scanCredentials() {
 		}
 
 		if s.config.ScanMode == ScanModeFull {
-			filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
+			s.walkDir(root, func(path string, d os.DirEntry, err error) error {
 				if err != nil {
 					return nil
 				}
@@ -976,7 +1008,7 @@ func (s *Scanner) scanRunners() {
 			continue
 		}
 
-		filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
+		s.walkDir(root, func(path string, d os.DirEntry, err error) error {
 			if err != nil || !d.IsDir() {
 				return nil
 			}
@@ -1023,7 +1055,7 @@ func (s *Scanner) scanHooks() {
 			pkgPath := filepath.Join(root, "package.json")
 			s.checkPackageJson(pkgPath)
 		} else {
-			filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
+			s.walkDir(root, func(path string, d os.DirEntry, err error) error {
 				if err != nil {
 					return nil
 				}
@@ -1453,7 +1485,7 @@ func (s *Scanner) scanHashes() {
 		}
 
 		if s.config.ScanMode == ScanModeQuick {
-			filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
+			s.walkDir(root, func(path string, d os.DirEntry, err error) error {
 				if err != nil {
 					return nil
 				}
@@ -1472,7 +1504,7 @@ func (s *Scanner) scanHashes() {
 				return nil
 			})
 		} else {
-			filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
+			s.walkDir(root, func(path string, d os.DirEntry, err error) error {
 				if err != nil || d.IsDir() {
 					return nil
 				}
@@ -1481,7 +1513,7 @@ func (s *Scanner) scanHashes() {
 				if strings.HasSuffix(name, ".d.ts") {
 					return nil
 				}
-				if strings.HasSuffix(name, ".js") || strings.HasSuffix(name, ".ts") {
+				if suspiciousNames[name] || strings.HasSuffix(name, ".js") || strings.HasSuffix(name, ".ts") {
 					hashJobs <- path
 				}
 				return nil
@@ -1517,7 +1549,7 @@ func (s *Scanner) scanMigrationSuffix() {
 			continue
 		}
 
-		filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
+		s.walkDir(root, func(path string, d os.DirEntry, err error) error {
 			if err != nil || !d.IsDir() {
 				return nil
 			}
@@ -1531,8 +1563,7 @@ func (s *Scanner) scanMigrationSuffix() {
 
 			if d.Name() == ".git" {
 				repoDir := filepath.Dir(path)
-				cmd := exec.Command("git", "-C", repoDir, "remote", "-v")
-				output, err := cmd.Output()
+				output, err := gitOutput(repoDir, "remote", "-v")
 				if err == nil && strings.Contains(strings.ToLower(string(output)), "-migration") {
 					s.addFinding(report.FindingMigrationAttack, "Remote URL contains '-migration'", repoDir)
 				}
@@ -1555,7 +1586,7 @@ func (s *Scanner) scanTrufflehog() {
 				continue
 			}
 
-			filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
+			s.walkDir(root, func(path string, d os.DirEntry, err error) error {
 				if err != nil {
 					return nil
 				}
@@ -1595,7 +1626,7 @@ func (s *Scanner) scanEnvPatterns() {
 			continue
 		}
 
-		filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
+		s.walkDir(root, func(path string, d os.DirEntry, err error) error {
 			if err != nil {
 				return nil
 			}
@@ -1657,7 +1688,7 @@ func (s *Scanner) scanCompromisedNamespaces() {
 			continue
 		}
 
-		filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
+		s.walkDir(root, func(path string, d os.DirEntry, err error) error {
 			if err != nil {
 				return nil
 			}
@@ -1700,7 +1731,7 @@ func (s *Scanner) scanLockfiles() {
 			continue
 		}
 
-		filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
+		s.walkDir(root, func(path string, d os.DirEntry, err error) error {
 			if err != nil {
 				return nil
 			}
@@ -1876,8 +1907,8 @@ func (s *Scanner) addLockfileFindingIfCompromised(pkgName, version, lockPath str
 // package-lock "packages" map key, including nested transitive entries.
 func packageNameFromPackageLockPath(pkgPath string) string {
 	parts := strings.Split(pkgPath, "/")
-	for i := len(parts) - 1; i >= 0; i-- {
-		if parts[i] != "node_modules" {
+	for i, part := range slices.Backward(parts) {
+		if part != "node_modules" {
 			continue
 		}
 		if i+1 >= len(parts) {
@@ -1963,12 +1994,6 @@ func (s *Scanner) readPackageVersion(pkgDir string) string {
 		return ""
 	}
 	return normalizePackageVersion(meta.Version)
-}
-
-// pathHasDirSegment reports whether path contains segment as a directory/file
-// path component (not just as a substring).
-func pathHasDirSegment(path, segment string) bool {
-	return pathDirSegmentCount(path, segment) > 0
 }
 
 func shouldSkipNodeModulesDir(d os.DirEntry) bool {

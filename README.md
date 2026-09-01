@@ -55,15 +55,15 @@ The scanner performs the following checks:
 1. Ensure this binary is available on your `PATH`, or correctly installed via your package manager
 1. Run the scanner with appropriate switches (see [CLI Usage](#cli-usage) below)
 
-### From Source (Go 1.26+) for Development
+### From Source (Go 1.27.x) for Development
 
 To compile the source, you will need to install the Go toolchain as this project is implemented in **pure Go**.
 
-- **Minimum Go version**: `1.26`
+- **Go version**: `1.27.x`
 - No CGO dependencies (cross-compilation friendly)
-- This repository is modernized for Go 1.26 (for example, iterator-based string splitting and `sync.WaitGroup.Go` usage)
+- This repository targets Go 1.27 and uses modern APIs such as iterator-based string splitting and `sync.WaitGroup.Go`
 
-Please follow the [instructions appropriate to your platform](https://go.dev/doc/install) and review the [Go 1.26 release notes](https://go.dev/doc/go1.26).
+Please follow the [instructions appropriate to your platform](https://go.dev/doc/install) and review the [Go 1.27 release notes](https://go.dev/doc/go1.27).
 
 Clone the repository and build the CLI:
 
@@ -78,13 +78,19 @@ go test ./...
 go build -o shai-hulud-scanner ./cmd/scanner
 ```
 
-With Go 1.26+ in your `PATH`, you can also use:
+With Go 1.27.x in your `PATH`, you can also use:
 
 ```bash
 go install ./cmd/scanner
 ```
 
 This will place `shai-hulud-scanner` into your `GOBIN` (or `$GOPATH/bin`).
+
+Development linting uses `golangci-lint` v2.13.2. Install the pinned binary release with:
+
+```bash
+curl -sSfL https://golangci-lint.run/install.sh | sh -s -- -b "$(go env GOPATH)/bin" v2.13.2
+```
 
 ### Using the Makefile
 
@@ -93,6 +99,10 @@ Once you have Go installed, you can use the provided `Makefile` shortcuts:
 ```bash
 # Run tests
 make test
+
+# Verify formatting and run the repository lint policy
+make fmt-check
+make lint
 
 # Build a local debug binary (bin/shai-hulud-scanner)
 make debug
@@ -307,10 +317,15 @@ security_scan:
 
 ## Detected IOCs
 
+### Compromised Packages
+
+- `@7nohe/openapi-react-query-codegen`: `0.0.0-365d4eb738d3146583431948d3ba6e27a32556be`, `0.0.0-ec7876d6c917dad516ba69bbfafc948b834bf0ab`, `0.5.4`, `0.5.5`, `1.6.3`, `1.6.4`, `2.2.1`, `2.2.2`, `3.0.3`, `3.0.4`
+
 ### Malicious Files
 - `shai-hulud.js`, `shai_hulud.js`
 - `setup_bun.js`, `bun_environment.js`
 - `discussion.yaml`
+- `3FWCvzduYZg.js`, `is_it_this_simple.js`
 - `truffleSecrets.json`, `actionsSecrets.json`
 
 ### Workflow Patterns
@@ -335,6 +350,11 @@ security_scan:
 - `81d2a004a1bca6ef87a1caf7d0e0b355ad1764238e40ff6d1b1cb77ad4f595c3`
 - `83a650ce44b2a9854802a7fb4c202877815274c129af49e6c2d1d5d5d55c501e`
 - `aba1fcbd15c6ba6d9b96e34cec287660fff4a31632bf76f2a766c499f55ca1ee`
+- `ab4fcadaec49c03278063dd269ea5eef82d24f2124a8e15d7b90f2fa8601266c` - Mini Shai-Hulud router payload
+- `2ec78d556d696e208927cc503d48e4b5eb56b31abc2870c2ed2e98d6be27fc96` - Mini Shai-Hulud TanStack/router payload
+- `d3246926b20a8d021ed7de0ac8e9eee1dda986088f84ba18f31cb2042a121f5d` - openapi-react-query-codegen `binding.gyp`
+- `59370c67b54a0ccaedd265e2356f04540b2fba1e1845300ef6de4d5437d99380` - openapi-react-query-codegen `3FWCvzduYZg.js`
+- `b49afb7dba64cd99b357ce7c652c823a3707f28e130bd5c6645851a7adc030d6` - openapi-react-query-codegen `3FWCvzduYZg.js` variant
 
 **SHA1 (Shai-Hulud 2.0):**
 - `d1829b4708126dcc7bea7437c04d1f10eacd4a16` - setup_bun.js
@@ -349,6 +369,7 @@ The scanner flags dependencies from the following npm namespaces that have been 
 - `@ahmedhfarag`, `@operato`, `@teselagen`, `@things-factory`, `@hestjs`
 - `@nstudio`, `@basic-ui-components-stc`, `@nexe`, `@thangved`
 - `@tnf-dev`, `@ui-ux-gang`, `@yoobic`
+- `@7nohe` (derived from the version-specific custom IOC feed)
 
 ## Output
 

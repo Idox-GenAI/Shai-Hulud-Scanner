@@ -16,7 +16,7 @@ import (
 	"shai-hulud-scanner/pkg/update"
 )
 
-var version = "1.3.4"
+var version = "1.4.0"
 
 const defaultReportName = "ShaiHulud-Scan-Report.txt"
 
@@ -32,9 +32,9 @@ const bannerNarrow = `
 `
 
 func printBanner(banner io.Writer) {
-	fmt.Fprintln(banner)
-	fmt.Fprint(banner, bannerNarrow)
-	fmt.Fprintln(banner)
+	_, _ = fmt.Fprintln(banner)
+	_, _ = fmt.Fprint(banner, bannerNarrow)
+	_, _ = fmt.Fprintln(banner)
 }
 
 func printUsage() {

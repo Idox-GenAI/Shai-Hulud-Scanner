@@ -133,7 +133,7 @@ func (c *Checker) latestRelease(ctx context.Context) (*release, error) {
 	if err != nil {
 		return nil, fmt.Errorf("check latest release: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
@@ -336,7 +336,7 @@ func (c *Checker) downloadPath(assetName string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	if err := os.MkdirAll(destDir, 0o755); err != nil {
+	if err := os.MkdirAll(destDir, 0o750); err != nil {
 		return "", fmt.Errorf("create update cache directory: %w", err)
 	}
 	return filepath.Join(destDir, safeName), nil
@@ -365,13 +365,13 @@ func (c *Checker) downloadFile(ctx context.Context, url, destPath string) error 
 	if err != nil {
 		return fmt.Errorf("download update asset: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("download update asset: server returned %s", resp.Status)
 	}
 
 	tmpPath := destPath + ".tmp"
-	f, err := os.OpenFile(tmpPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o644)
+	f, err := os.OpenFile(tmpPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o600)
 	if err != nil {
 		return fmt.Errorf("create update asset: %w", err)
 	}
@@ -422,7 +422,7 @@ func (c *Checker) verifyChecksum(ctx context.Context, checksumAsset releaseAsset
 	if err != nil {
 		return fmt.Errorf("download checksums: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("download checksums: server returned %s", resp.Status)
 	}
@@ -464,7 +464,7 @@ func fileSHA256(path string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("open update asset for checksum: %w", err)
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 	h := sha256.New()
 	if _, err := io.Copy(h, f); err != nil {
 		return "", fmt.Errorf("hash update asset: %w", err)

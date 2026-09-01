@@ -1,0 +1,56 @@
+version: "2"
+
+run:
+  timeout: 5m
+  relative-path-mode: gomod
+  tests: true
+
+linters:
+  default: standard
+  enable:
+    - bodyclose
+    - errorlint
+    - gosec
+    - noctx
+  exclusions:
+    generated: strict
+    warn-unused: true
+    rules:
+      # Test fixtures intentionally model package-manager files and executable
+      # paths with their production modes and use caller-controlled temp paths.
+      - path: _test\.go
+        text: "G(301|304|306):"
+        linters:
+          - gosec
+      # These APIs intentionally operate on caller-selected scan/config paths.
+      - path: pkg/(config/allowlist|report/report|update/update)\.go
+        text: "G304:"
+        linters:
+          - gosec
+      # Hash helpers read caller-selected files and retain SHA-1 solely for
+      # matching legacy malware IOCs, never for cryptographic security.
+      - path: pkg/hash/hash\.go
+        text: "G(304|401|505):"
+        linters:
+          - gosec
+      # Scanner paths are selected by the caller or discovered below a scan
+      # root; Git is invoked directly with fixed arguments and no shell.
+      - path: pkg/scanner/scanner\.go
+        text: "G(204|304):"
+        linters:
+          - gosec
+      # The identifier names a report finding type, not a credential value.
+      - path: pkg/report/report\.go
+        text: "G101:"
+        linters:
+          - gosec
+
+formatters:
+  enable:
+    - gofmt
+  exclusions:
+    generated: strict
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0

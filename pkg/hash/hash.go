@@ -14,7 +14,7 @@ func ComputeSHA256(filepath string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("failed to open file: %w", err)
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	h := sha256.New()
 	if _, err := io.Copy(h, file); err != nil {
@@ -29,7 +29,7 @@ func ComputeSHA1(filepath string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("failed to open file: %w", err)
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	h := sha1.New()
 	if _, err := io.Copy(h, file); err != nil {
@@ -45,7 +45,7 @@ func ComputeBothHashes(filepath string) (sha256Hash, sha1Hash string, err error)
 	if err != nil {
 		return "", "", fmt.Errorf("failed to open file: %w", err)
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	h256 := sha256.New()
 	h1 := sha1.New()

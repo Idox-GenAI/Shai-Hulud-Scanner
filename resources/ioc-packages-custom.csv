@@ -991,7 +991,7 @@ hexo-deployer-wrangler,= 1.0.4
 @bcryptln/becryptjs,= 3.0.9 || = 3.0.10 || = 3.0.11
 @im_ahsan/chatbot-widget,= 0.0.77 || = 0.0.78 || = 0.0.79 || = 0.0.80 || = 0.0.81 || = 0.0.82
 @muhammadahsan100d/chatbot-widget,= 0.0.82 || = 0.0.83 || = 0.0.84 || = 0.0.85
-fetch-page-assets,= 1.2.9
+fetch-page-assets,= 1.2.9 || = 1.2.10
 html-to-gutenberg,= 4.2.11
 viteplugiin,= 1.0.28
 jscrambler,= 8.14.0 || = 8.16.0 || = 8.17.0 || = 8.18.0 || = 8.20.0
@@ -1452,3 +1452,894 @@ umadev,= 1.0.74
 @umacloud/cli-darwin-arm64,= 1.0.74
 @umacloud/cli-linux-musl-x64,= 1.0.74
 @umacloud/cli-linux-musl-arm64,= 1.0.74
+@lambda-platform/lambda-vue,= 3.3.24
+tailwind-scrollbar-hider,= 0.0.1 || = 0.0.1-security || = 5.0.1 || = 5.0.2
+@kofoffc/baileys,= 0.0.3 || = 0.0.4
+@neykoor/baileys,= 7.0.13-rc15 || = 7.0.14-rc15 || = 7.0.15-rc15 || = 7.0.16-rc15
+@prototypevip/baileys,= 0.0.1 || = 0.0.2 || = 0.0.3 || = 0.0.4
+@cikikomo/baileys,= 1.0.0 || = 1.0.4 || = 1.0.5 || = 1.0.6 || = 1.0.7 || = 1.0.8 || = 1.0.9 || = 1.0.10 || = 1.0.11
+ynastore-baileys,= 1.0.20 || = 1.0.21
+santana-baileys,= 2.0.0 || = 2.0.1 || = 2.0.2 || = 2.0.3 || = 2.0.4
+diezyyasha-baileys,= 8.6.57 || = 8.6.58 || = 8.6.59 || = 8.6.60 || = 8.6.61 || = 8.6.62 || = 9.0.0 || = 9.1.0 || = 9.1.1 || = 9.1.2 || = 9.1.3 || = 9.1.5 || = 9.2.0
+alipclutch-baileys,= 8.6.58 || = 8.6.59 || = 8.6.60 || = 8.6.61 || = 8.6.63 || = 8.6.64 || = 8.6.65 || = 8.6.66 || = 8.6.70 || = 8.6.71 || = 8.6.72 || = 8.6.74 || = 8.6.75 || = 8.6.77
+diezyclutch-baileys,= 8.6.78
+@mrlegendbot/baileys,= 1.0.0 || = 1.1.0
+@xsat10/baileys-xsat,= 2.0.0
+@bowozzz/baileys,= 1.0.0 || = 6.6.6 || = 6.6.7 || = 7.0.0 || = 7.0.1 || = 7.0.2 || = 7.0.3 || = 7.7.7 || = 8.8.8 || = 9.9.9
+amanexzyra-baileys,= 3.0.0 || = 4.0.0 || = 4.0.2
+@fazzcode/baileys,= 2.5.3 || = 2.5.4 || = 2.5.5 || = 2.5.6 || = 2.5.7
+@web2apk/baileys,= 1.0.0 || = 2.0.0 || = 2.5.0 || = 3.0.0 || = 3.5.0 || = 3.5.5 || = 4.5.5 || = 5.5.5 || = 7.0.5
+@rexxhayanasi/elaina-baileys,= 1.3.4-rc.14 || = 1.3.4-rc.15 || = 1.3.4-rc.17
+@nexustechpro/baileys,= 2.2.0 || = 2.2.2 || = 2.2.3 || = 2.2.5
+@zannstore/baileys,= 2.2.6 || = 2.2.7 || = 2.2.8 || = 2.3.0 || = 2.3.1 || = 2.3.2 || = 2.3.3 || = 2.3.4 || = 2.3.5 || = 2.3.6 || = 2.3.7 || = 2.3.9 || = 2.4.0 || = 2.4.1 || = 2.4.2 || = 2.4.3 || = 2.4.4
+@badzz88/baileys,= 8.4.9
+sanka-baileyss,= 2.6.2 || = 2.6.3
+@systemzero/baileys,= 1.0.8 || = 1.1.1
+@sankavollereii/sanka-baileyss,= 2.5.8 || = 2.5.9 || = 2.6.0 || = 2.6.1 || = 2.6.2
+@sukatank01/baileys-whatsapp,= 5.5.5
+@alannxd/baileys,= 6.1.1 || = 6.1.2 || = 6.1.3 || = 6.1.4
+@sgintokic/baileys,= 0.1.4
+@sairidev/baileys-new,= 0.3.19 || = 0.3.21
+asepxyz-baileys,= 1.0.0 || = 1.0.1
+@fhkry/x-baileys,= 1.0.0 || = 1.1.0 || = 1.2.0 || = 1.3.0 || = 1.4.0 || = 1.5.0 || = 1.6.0 || = 1.7.0
+sauruslord-baileys,= 3.0.0 || = 3.0.1 || = 3.0.2
+@fvckerss/baileys,= 1.0.10 || = 1.0.11 || = 1.0.12
+baileys-clean,= 7.3.2
+alice-baileys,= 2.0.8
+@sanzstore/baileys-pro,= 1.0.0
+@fhkry/baileys,= 8.0.13
+@hanssoft/baileys,= 2.0.4
+@than1st/baileys,= 2.0.5 || = 2.0.6
+baileys-dgxeon,= 1.0.0
+@vreden-team/baileys,= 7.7.8 || = 7.7.9 || = 7.8.0 || = 7.8.1
+@im-dims/baileys,= 5.7.3
+@otaxayuns/baileys,= 7.0.4 || = 7.0.5
+@fhkry/baileys-v2,= 1.0.0
+um4r719-baileys,= 0.1.11 || = 0.1.15
+@sixcore/baileys,= 1.0.0 || = 1.0.1 || = 1.1.1
+@rexxtheproject/elaina-baileys,= 1.0.0
+@zecho/baileys-mod,= 2.0.0
+@sheniraid/baileys,= 4.0.11
+@myisrfn/baileys-mod,= 1.0.1 || = 1.0.2 || = 1.0.6 || = 2.0.4
+@dappaoffc/baileys-mod,= 4.0.2 || = 4.0.3 || = 5.0.0 || = 5.0.1 || = 5.0.2 || = 5.0.5 || = 5.0.6 || = 5.0.7 || = 6.0.5 || = 6.0.8 || = 6.0.11 || = 6.0.12 || = 6.0.13 || = 6.0.14 || = 6.0.15 || = 6.0.17 || = 6.0.18 || = 6.0.20 || = 6.0.21 || = 6.0.22 || = 6.0.24 || = 8.0.1 || = 8.0.3 || = 8.0.5
+@xvortexsockets/baileys,= 1.0.1
+@fr3newera/baileys,= 1.0.0 || = 1.0.1 || = 1.0.4
+yuji-baileys,= 4.0.2 || = 4.0.4
+@yazxzpedia/baileys,= 1.0.0 || = 4.0.0 || = 5.0.0 || = 6.0.0 || = 8.0.0
+@skyzopedia/baileys-mod,= 3.0.2 || = 3.0.5 || = 3.0.9 || = 4.0.0 || = 4.0.1 || = 4.0.2 || = 4.0.5 || = 5.0.0 || = 5.0.1 || = 5.0.2 || = 5.0.3 || = 5.0.4 || = 5.0.5 || = 5.0.6 || = 5.0.7 || = 5.0.8 || = 6.0.1 || = 6.0.7 || = 6.0.8 || = 6.0.10 || = 6.0.11 || = 6.0.12 || = 6.0.15 || = 6.0.17 || = 6.0.19 || = 6.0.20 || = 6.0.22 || = 8.0.0 || = 8.0.1 || = 8.0.2 || = 8.0.7 || = 8.0.8
+@skyzopedia/baileys-pro,= 2.0.0 || = 3.0.0 || = 3.0.1 || = 7.0.15 || = 7.0.16 || = 8.0.0 || = 8.0.1 || = 8.0.2 || = 8.0.3 || = 8.0.4 || = 8.0.5 || = 8.0.6 || = 8.0.7
+@dinzid04/baileys,= 0.0.1
+@sanzxcode/baileys,= 7.0.1
+@shenira/baileys,= 4.0.1
+baileys-ud,= 1.0.0
+@daffadeveloper/baileys,= 2.0.4 || = 2.0.5 || = 3.0.0 || = 7.0.0 || = 8.0.0
+baileys-dtz,= 2.0.0 || = 5.0.0 || = 5.0.2 || = 5.0.4 || = 7.0.0
+torbaileys,= 8.0.0 || = 8.0.1
+@mikudev/ridwan-baileys-mod,= 1.0.2
+@skyzopedia/baileys,= 2.0.3 || = 2.0.4 || = 2.0.5 || = 5.0.2 || = 5.0.4 || = 5.0.5 || = 5.0.6 || = 6.0.2 || = 6.0.5 || = 7.0.12 || = 7.0.13 || = 7.0.14
+@yaoii-bails/baileys,= 1.0.0 || = 2.0.0 || = 2.0.1 || = 2.0.3 || = 2.0.4 || = 2.0.5 || = 2.0.10 || = 2.0.11 || = 2.0.13 || = 2.0.14 || = 2.0.15 || = 2.0.17 || = 2.0.18 || = 2.0.19 || = 2.0.23 || = 2.0.34
+@dappaoffc/baileys,= 2.0.2 || = 2.0.4 || = 2.0.6
+@yaoii-bails/yaoii-baileys,= 2.0.1 || = 2.0.5 || = 2.0.10
+@shennmine/baileys,= 1.1.1 || = 1.1.2 || = 1.1.3 || = 1.1.5 || = 1.1.6 || = 1.1.7 || = 1.1.8 || = 2.0.0 || = 2.0.1 || = 2.0.2 || = 2.0.3 || = 2.0.4 || = 2.0.5 || = 2.0.6 || = 2.0.7 || = 2.0.8 || = 2.1.0 || = 2.1.1
+freedom-baileys,= 2.0.0
+supun-baileys,= 2.0.0
+baileys-cleaner,= 1.0.0 || = 1.0.2 || = 1.0.3 || = 1.0.4 || = 1.0.5 || = 1.0.6 || = 1.0.7 || = 1.0.8 || = 1.0.9 || = 1.1.0 || = 1.2.0 || = 1.3.0 || = 1.4.0 || = 1.5.0 || = 1.7.0 || = 1.8.0 || = 1.9.0 || = 1.9.1 || = 1.9.2 || = 1.9.3 || = 1.9.4 || = 1.9.5 || = 1.9.7
+@crysnovax/baileys,= 2.7.6 || = 2.7.10
+@vanzxy/baileys,= 1.3.8
+ourin-baileys,= 0.8.4
+@ostyado/baileys,= 2.0.5
+@lordmega/baileys,= 0.3.21 || = 0.3.29 || = 0.3.30 || = 0.3.31 || = 0.3.32 || = 0.3.33 || = 0.3.34 || = 0.3.35 || = 0.3.37 || = 0.3.38 || = 0.3.39 || = 0.3.40 || = 0.3.41 || = 0.3.42
+khyz-baileys,= 2.3.0
+xxbaileys,= 5.0.0-beta.0
+te-baileys,= 0.0.1-beta.0
+baileys-channel-mod,= 1.0.0 || = 1.0.1 || = 1.0.2 || = 1.0.3 || = 1.0.4 || = 1.0.5
+austiin-baileys,= 1.1.4
+chromestaff-baileys,= 1.1.9
+baileys-reseh,= 1.0.2
+@diezyyasha/libsignal-node,= 2.2.8
+@vinnxcode/libsignal-node,= 1.0.0 || = 1.0.1
+libsignal-node-travatiger,= 1.0.0 || = 1.0.1
+@dgxeon13/libsignal-node,= 1.0.0
+@zizie071/libsignal-node,= 3.3.6 || = 3.4.6
+@hanssoft/libsignal-node,= 3.0.4
+@shennmine/libsignal-node,= 2.0.1 || = 2.0.2 || = 2.0.3 || = 2.0.4 || = 2.0.6 || = 2.0.7 || = 2.0.8 || = 2.0.10 || = 2.0.13 || = 2.0.22 || = 2.1.9 || = 2.2.0 || = 2.2.1 || = 2.2.2 || = 2.2.3 || = 2.2.4 || = 2.2.5 || = 2.2.6
+@than-xs/libsignal-node,= 2.0.5
+@sanzxcode/libsignal-node,= 2.2.5
+@shenira/libsignal-node,= 2.2.4 || = 2.2.5
+@dgxeon/libsignal-node,= 1.0.1
+@daffadeveloper/libsignal-node,= 2.0.3
+@skyzopedia/libsignal-node,= 2.0.5 || = 2.0.8 || = 2.0.11
+@yaoii-bails/libsignal-node,= 2.0.2
+@nazi-team/libsignal-node,= 2.0.1
+@testrelic/appium-analytics,= 1.1.1-next.88
+@testrelic/playwright-analytics,= 2.12.1-next.88 || = 2.13.0
+@7nohe/openapi-react-query-codegen,= 0.0.0-365d4eb738d3146583431948d3ba6e27a32556be || = 0.0.0-ec7876d6c917dad516ba69bbfafc948b834bf0ab || = 0.5.4 || = 0.5.5 || = 1.6.3 || = 1.6.4 || = 2.2.1 || = 2.2.2 || = 3.0.3 || = 3.0.4
+a.poltoradnev-package-c,= 12.8.5
+accounts-final-form,= 12.5.5
+accounts-loading-state,= 12.5.7
+accounts-timeline,= 12.3.7
+afisha-storybook-default,= 12.1.1
+arbocrate-sla-prober-arbocrate-sla-prober-core,= 12.7.1
+bcore-bravo-eslint-config,= 12.5.7
+beaver-ui-actions-button,= 12.3.9
+beaver-ui-card-large,= 12.4.3
+beaver-ui-date-range-picker,= 12.5.3
+beaver-ui-drawer,= 11.3.6 || = 12.5.2
+beaver-ui-form,= 12.6.1
+beaver-ui-form-modal,= 12.7.6
+beaver-ui-form-object,= 0.0.1-security || = 12.1.7 || = 34.7.5 || = 35.7.3
+beaver-ui-grid,= 12.7.3
+beaver-ui-header,= 12.3.9
+beaver-ui-hooks,= 0.0.1-security || = 12.6.3 || = 34.4.2 || = 35.3.5
+beaver-ui-icon-lock,= 0.0.1-security || = 12.2.3 || = 34.8.3 || = 35.7.5
+beaver-ui-items-with-more,= 12.2.6
+beaver-ui-layout,= 12.9.6
+beaver-ui-list,= 35.4.4
+beaver-ui-multi-select-with-all,= 0.0.1-security || = 35.6.4
+beaver-ui-object-card,= 0.0.1-security || = 35.3.8
+beaver-ui-pagination,= 0.0.1-security || = 35.3.7
+beaver-ui-popover-card,= 0.0.1-security || = 35.4.4
+beaver-ui-search-dropdown,= 0.0.1-security || = 35.4.5
+beaver-ui-side-navigation,= 0.0.1-security || = 35.7.1
+beaver-ui-smart-filter,= 0.0.1-security || = 35.1.9
+beaver-ui-split-view,= 0.0.1-security || = 35.1.2
+beaver-ui-subheader,= 0.0.1-security || = 35.7.2
+beaver-ui-table,= 0.0.1-security || = 35.2.7
+bi-core-bi-core-core,= 0.0.1-security || = 35.8.5
+bigops-alerts-widget,= 0.0.1-security || = 35.8.3
+bigops-api,= 35.8.8
+bigops-api-customer,= 0.0.1-security || = 35.8.9
+bigops-api-mobile,= 35.6.2
+bigops-auth,= 35.8.6
+bigops-auth-cache,= 35.3.9
+bigops-auth-interceptor,= 35.7.2
+bigops-auth-provider-interceptor,= 35.8.3
+bigops-auth-utils,= 35.4.5
+bigops-awesome-viewer,= 35.1.4
+bigops-backend,= 35.8.3
+bigops-call-history,= 35.8.9
+bigops-chat-files-hub-client,= 35.4.6
+bigops-chat-messages,= 0.0.1-security || = 19.9.8
+bigops-chat-tmsg,= 35.8.5
+bigops-chat-transfer,= 35.3.6
+bigops-chats,= 35.9.6
+bigops-chats-client,= 35.2.4
+bigops-cobrowsing,= 35.4.9
+bigops-cobrowsing-client,= 35.1.9
+bigops-communication-client,= 35.8.8
+bigops-customer,= 35.1.1
+bigops-customer-processing-client,= 35.1.8
+bigops-data-storage,= 35.7.1
+bigops-eslint,= 35.9.5
+bigops-eslint-config,= 35.1.9
+bigops-external-auth,= 35.1.6
+bigops-figma-to-html,= 35.5.5
+bigops-file-storage,= 35.1.2
+bigops-frontend-bigops-frontend-core,= 35.1.5
+bigops-header-tabs,= 35.8.2
+bigops-info-notices,= 35.9.8
+bigops-informer,= 35.4.8
+bigops-insite,= 35.8.1
+bigops-jsonpath-mapper,= 35.4.6
+bigops-legacy-telephony-panel,= 35.5.7
+bigops-legacy-utils,= 35.2.6
+bigops-logs-player,= 35.2.8
+bigops-microfrontend,= 35.4.1
+bigops-nitro-client,= 35.6.1
+bigops-nitro-events-table,= 35.4.2
+bigops-notes,= 35.8.7
+bigops-offers,= 35.6.8
+bigops-opening-file-handler,= 35.9.2
+bigops-operator-status,= 35.4.5
+bigops-outgoing-call,= 35.1.6
+bigops-plugin-notification-builder,= 35.1.3
+bigops-procedure-file-handlers,= 35.7.6
+bigops-procedure-player,= 35.8.2
+bigops-product-list,= 35.8.5
+bigops-products,= 35.7.4
+bigops-products-accounts-and-cards,= 35.7.5
+bigops-products-bnpl,= 35.2.9
+bigops-products-deposits,= 35.9.1
+bigops-products-insurance,= 35.3.4
+bigops-products-investment,= 35.3.1
+bigops-products-loans,= 35.6.4
+bigops-products-mobile,= 35.6.8
+bigops-products-savings-accounts,= 35.3.7
+bigops-products-timeline-commons,= 35.1.6
+bigops-products-travel,= 35.7.1
+bigops-rx-post-message,= 35.1.5
+bigops-shared-ui,= 35.1.2
+bigops-statements-timeline,= 35.2.4
+bigops-status-selection,= 35.3.2
+bigops-storio,= 35.8.7
+bigops-storio-ngrx,= 35.2.2
+bigops-storio-ngrx-component-store,= 35.3.4
+bigops-storio-schematics,= 0.0.1-security || = 35.3.6
+bigops-storio-store-adapter,= 35.9.8
+bigops-stylelint,= 35.4.3
+bigops-tasks,= 0.0.1-security || = 35.1.4
+bigops-tasks-client,= 0.0.1-security || = 35.1.2
+bigops-tcrm-auth,= 35.8.5
+bigops-tcrm-identity-auth,= 35.9.3
+bigops-tcrm-permissions,= 35.5.1 || = 35.6.1
+bigops-telephony,= 35.8.4
+bigops-telephony-client,= 35.7.6
+bigops-telephony-ui,= 35.7.3
+bigops-telephony-ui-adapter,= 35.6.4
+bigops-timeline,= 35.4.9
+bigops-timeline-ui,= 35.5.8
+bigops-timers,= 35.9.5
+bigops-tinkoff-telephony-mock,= 0.0.1-security || = 35.5.1
+bigops-tslint,= 0.0.1-security || = 35.9.4
+bigops-ui-kit,= 35.9.2
+bigops-ui-kit-styles,= 0.0.1-security || = 35.5.7
+bigops-ui-themes,= 35.6.5
+bigops-umf-statist,= 35.3.1
+bigops-videocalls,= 35.9.9
+bigops-voximplant,= 0.0.1-security || = 20.8.5 || = 35.4.8
+bigops-watchdog-angular,= 35.4.8
+bigops-watchdog-worker,= 35.7.4
+bigops-watermark,= 35.9.5
+bigops-web-analytics,= 35.9.4
+blocks-sahred-atom-mobile-app-bar-action,= 35.6.8
+bnpl-api,= 35.9.5
+bnpl-blocks-analytics,= 35.3.8
+bnpl-blocks-atom-bnpl-action-card,= 35.4.7
+bnpl-blocks-atom-bnpl-anchor-menu,= 35.8.5
+bnpl-blocks-atom-bnpl-badge,= 35.6.8
+bnpl-blocks-atom-bnpl-base-popup,= 35.2.9
+bnpl-blocks-atom-bnpl-breadcrumbs,= 35.8.2
+bnpl-blocks-atom-bnpl-button,= 35.4.7
+bnpl-blocks-atom-bnpl-card,= 0.0.1-security || = 35.9.4
+bnpl-blocks-atom-bnpl-carousel-line,= 35.1.6
+bnpl-blocks-atom-bnpl-dangerously-html,= 35.2.4
+bnpl-blocks-atom-bnpl-dolyame-button,= 35.1.8
+bnpl-blocks-atom-bnpl-dropdown,= 35.5.5
+bnpl-blocks-atom-bnpl-email-form,= 35.3.9
+bnpl-blocks-atom-bnpl-fade-overflow,= 35.7.2
+bnpl-blocks-atom-bnpl-feedback,= 35.7.5
+bnpl-blocks-atom-bnpl-image,= 35.2.9
+bnpl-blocks-atom-bnpl-image-popup,= 0.0.1-security || = 35.9.6
+bnpl-blocks-atom-bnpl-info-card,= 35.7.3
+bnpl-blocks-atom-bnpl-integrations-breadcrumbs,= 35.2.9
+bnpl-blocks-atom-bnpl-link-avatar,= 0.0.1-security || = 35.4.8
+bnpl-blocks-atom-bnpl-navigation-arrow,= 35.2.6
+bnpl-blocks-atom-bnpl-news-card,= 35.6.8
+bnpl-blocks-atom-bnpl-no-index-link,= 35.1.2
+bnpl-blocks-atom-bnpl-notification,= 35.3.8
+bnpl-blocks-atom-bnpl-popup,= 35.4.7
+bnpl-blocks-atom-bnpl-product-card,= 35.6.4
+bnpl-blocks-atom-bnpl-promocode,= 35.9.1
+bnpl-blocks-atom-bnpl-radio,= 35.4.8
+bnpl-blocks-atom-bnpl-range,= 35.6.6
+bnpl-blocks-atom-bnpl-review,= 35.5.4
+bnpl-blocks-atom-bnpl-reviews-counter,= 35.3.6
+bnpl-blocks-atom-bnpl-skeleton,= 35.6.3
+bnpl-blocks-atom-bnpl-small-image-card,= 35.5.1
+bnpl-blocks-atom-bnpl-star-rating,= 35.8.2
+bnpl-blocks-atom-bnpl-store-button,= 35.2.8
+bnpl-blocks-atom-bnpl-store-button-set,= 35.6.9
+bnpl-blocks-atom-bnpl-text,= 35.8.8
+bnpl-blocks-atom-bnpl-toggle,= 35.2.4
+bnpl-blocks-atom-container,= 35.7.4
+bnpl-blocks-atom-desktop-bnpl-dangerously-html,= 35.9.9
+bnpl-blocks-atom-desktop-bnpl-highlighted-text,= 35.2.3
+bnpl-blocks-atom-desktop-bnpl-text,= 35.2.5
+bnpl-blocks-atom-icon-loader,= 35.4.7
+bnpl-blocks-atom-image-gallery,= 35.2.6
+bnpl-blocks-component-story-name,= 35.2.7
+bnpl-blocks-data-schema-generator,= 35.2.1
+bnpl-blocks-design-system,= 35.4.8
+bnpl-blocks-desktop-bnpl-action-panel,= 35.3.1
+bnpl-blocks-desktop-bnpl-anchor-title,= 35.2.5
+bnpl-blocks-desktop-bnpl-article-author,= 35.9.6
+bnpl-blocks-desktop-bnpl-breadcrumbs,= 35.3.4
+bnpl-blocks-desktop-bnpl-button-set,= 35.3.7
+bnpl-blocks-desktop-bnpl-card-gallery,= 35.1.6
+bnpl-blocks-desktop-bnpl-card-panel,= 35.9.2
+bnpl-blocks-desktop-bnpl-category-gallery,= 35.2.8
+bnpl-blocks-desktop-bnpl-container,= 35.7.9
+bnpl-blocks-desktop-bnpl-documents,= 20.7.2
+bnpl-blocks-desktop-bnpl-faq,= 35.6.6
+bnpl-blocks-desktop-bnpl-feedback,= 35.3.6
+bnpl-blocks-desktop-bnpl-floating-button,= 35.7.6
+bnpl-blocks-desktop-bnpl-footer,= 35.2.6
+bnpl-blocks-desktop-bnpl-grid-container,= 35.2.9
+bnpl-blocks-desktop-bnpl-header,= 35.7.1
+bnpl-blocks-desktop-bnpl-header-catalog,= 35.3.6
+bnpl-blocks-desktop-bnpl-header-search,= 35.2.6
+bnpl-blocks-desktop-bnpl-image-plus-text,= 35.2.6
+bnpl-blocks-desktop-bnpl-image-with-caption,= 35.4.2
+bnpl-blocks-desktop-bnpl-info-slider,= 35.1.3
+bnpl-blocks-desktop-bnpl-navigation,= 35.3.2
+bnpl-blocks-desktop-bnpl-news-cards,= 35.3.8
+bnpl-blocks-desktop-bnpl-notification,= 35.8.9
+bnpl-blocks-desktop-bnpl-partners,= 35.9.5
+bnpl-blocks-desktop-bnpl-picture-gallery,= 35.8.6
+bnpl-blocks-desktop-bnpl-popup,= 35.9.9
+bnpl-blocks-desktop-bnpl-reviews,= 35.6.5
+bnpl-blocks-desktop-bnpl-separator,= 35.5.8
+bnpl-blocks-desktop-bnpl-shopping-banner,= 35.4.6
+bnpl-blocks-desktop-bnpl-shopping-header,= 35.5.1
+bnpl-blocks-desktop-bnpl-tab-buttons,= 35.9.2
+bnpl-blocks-desktop-bnpl-table,= 35.4.7
+bnpl-blocks-desktop-bnpl-text-block,= 35.9.4
+bnpl-blocks-desktop-bnpl-title,= 35.7.9
+bnpl-blocks-desktop-large-bnpl-reviews,= 35.8.2
+bnpl-blocks-feature-partners,= 35.9.1
+bnpl-blocks-fonts,= 35.2.2
+bnpl-blocks-independent-bnpl-anchor,= 35.6.5
+bnpl-blocks-independent-bnpl-button,= 35.2.2
+bnpl-blocks-independent-bnpl-cards,= 35.5.3
+bnpl-blocks-independent-bnpl-code-text,= 35.2.4
+bnpl-blocks-independent-bnpl-faq,= 35.1.1
+bnpl-blocks-independent-bnpl-features,= 35.7.2
+bnpl-blocks-independent-bnpl-info-slider,= 35.9.8
+bnpl-blocks-independent-bnpl-items,= 35.9.3
+bnpl-blocks-independent-bnpl-main-banner,= 35.4.4
+bnpl-blocks-independent-bnpl-main-title,= 35.6.7
+bnpl-blocks-independent-bnpl-mobile-application,= 35.7.5
+bnpl-blocks-independent-bnpl-navigation,= 35.8.4
+bnpl-blocks-independent-bnpl-origination,= 35.6.3
+bnpl-blocks-independent-bnpl-picture-gallery,= 35.2.9
+bnpl-blocks-independent-bnpl-preset-container,= 35.3.2
+bnpl-blocks-independent-bnpl-product-grid,= 35.5.5
+bnpl-blocks-independent-bnpl-scheme,= 35.8.4
+bnpl-blocks-independent-bnpl-search,= 20.2.9
+bnpl-blocks-independent-bnpl-separator,= 35.3.8
+bnpl-blocks-independent-bnpl-table,= 35.3.7
+bnpl-blocks-independent-bnpl-text-block,= 35.7.1
+bnpl-blocks-independent-bnpl-tiles,= 35.8.9
+bnpl-blocks-independent-bnpl-title,= 35.2.4
+bnpl-blocks-independent-bnpl-video,= 35.7.3
+bnpl-blocks-markdown,= 35.4.1
+bnpl-blocks-mobile-bnpl-anchor-title,= 35.8.3
+bnpl-blocks-mobile-bnpl-article-author,= 35.3.3
+bnpl-blocks-mobile-bnpl-breadcrumbs,= 35.3.4
+bnpl-blocks-mobile-bnpl-button-set,= 35.6.5
+bnpl-blocks-mobile-bnpl-card-gallery,= 35.4.3
+bnpl-blocks-mobile-bnpl-card-panel,= 35.1.3
+bnpl-blocks-mobile-bnpl-category-gallery,= 35.6.5
+bnpl-blocks-mobile-bnpl-container,= 35.1.8
+bnpl-blocks-mobile-bnpl-documents,= 35.1.2
+bnpl-blocks-mobile-bnpl-faq,= 35.5.3
+bnpl-blocks-mobile-bnpl-feedback,= 35.3.5
+bnpl-blocks-mobile-bnpl-footer,= 35.4.3
+bnpl-blocks-mobile-bnpl-grid-container,= 35.7.1
+bnpl-blocks-mobile-bnpl-header,= 35.2.8
+bnpl-blocks-mobile-bnpl-header-search,= 35.3.7
+bnpl-blocks-mobile-bnpl-image-plus-text,= 35.3.2
+bnpl-blocks-mobile-bnpl-image-with-caption,= 35.3.6
+bnpl-blocks-mobile-bnpl-link-group,= 35.2.3
+bnpl-blocks-mobile-bnpl-navigation,= 35.3.2
+bnpl-blocks-mobile-bnpl-news-cards,= 35.6.7
+bnpl-blocks-mobile-bnpl-notification,= 35.5.6
+bnpl-blocks-mobile-bnpl-partners,= 35.8.8
+bnpl-blocks-mobile-bnpl-picture-gallery,= 35.9.1
+bnpl-blocks-mobile-bnpl-popup,= 35.5.9
+bnpl-blocks-mobile-bnpl-reviews,= 35.5.3
+bnpl-blocks-mobile-bnpl-separator,= 35.5.2
+bnpl-blocks-mobile-bnpl-shopping-banner,= 35.1.4
+bnpl-blocks-mobile-bnpl-shopping-header,= 35.3.3
+bnpl-blocks-mobile-bnpl-tab-buttons,= 35.7.1
+bnpl-blocks-mobile-bnpl-table,= 35.1.3
+bnpl-blocks-mobile-bnpl-text-block,= 35.2.2
+bnpl-blocks-mobile-bnpl-title,= 35.7.1
+bnpl-blocks-playwright,= 35.4.6
+bnpl-blocks-post-css,= 35.5.4
+bnpl-blocks-sanitizer,= 35.1.8
+bnpl-blocks-scroll,= 35.2.6
+bnpl-blocks-seo-tools,= 35.2.3
+bnpl-blocks-shops-api,= 35.2.5
+bnpl-blocks-stories,= 35.2.8
+bnpl-blocks-stories-of-block,= 35.8.1
+bnpl-blocks-types-gen,= 35.4.4
+bnpl-blocks-utils,= 35.7.1
+bnpl-core,= 35.8.2
+bnpl-forms-test-utils,= 35.4.1
+bnpl-molecule-mobile-bnpl-onboarding,= 35.7.8
+boxy-adapter-tramvai,= 35.6.6
+boxy-add-link,= 35.7.5
+boxy-add-script,= 35.2.2
+boxy-bus-providers,= 35.3.4
+boxy-client-loader,= 35.8.6
+boxy-constants,= 35.2.7
+boxy-contract,= 35.4.3
+boxy-cook,= 35.5.4
+boxy-debugger,= 35.3.4
+boxy-demo-tokens,= 35.2.7
+boxy-devtools,= 35.9.5
+boxy-devtools-tokens,= 35.9.9
+boxy-docusaurus-plugin-content-docs-light,= 35.3.7
+boxy-esm-shims,= 35.5.5
+boxy-expander-contract,= 35.5.3
+boxy-fixture,= 35.6.4
+boxy-fixture-paperclip,= 35.8.2
+boxy-fixture-pendel,= 35.8.9
+boxy-fixture-pfa,= 35.3.4
+boxy-fixture-sb,= 35.9.6
+boxy-get-retry-url,= 35.4.4
+boxy-global-modules-webpack-plugin,= 35.5.5
+boxy-lazy-loader,= 35.7.7
+boxy-lcd,= 35.2.3
+boxy-legacy-providers,= 35.6.4
+boxy-live,= 35.8.6
+boxy-loader,= 35.4.2
+boxy-make-tokens-map,= 35.9.7
+boxy-maker,= 35.4.8
+boxy-maker-extendable-minihost,= 35.7.5
+boxy-maker-legacy,= 35.1.7
+boxy-maker-page-readiness,= 35.7.8
+boxy-maker-readiness,= 35.3.4
+boxy-maker-scroll,= 35.6.7
+boxy-maker-skeleton,= 35.8.9
+boxy-maker-sticky,= 35.9.7
+boxy-maker-wave,= 35.2.1
+boxy-mif-tokens,= 35.7.1
+boxy-mm-advisor,= 35.3.2
+boxy-mm-server-loader,= 35.5.8
+boxy-mmb-deps-pvm-plugin,= 35.6.5
+boxy-mmb-types,= 35.4.1
+boxy-mops,= 35.2.9
+boxy-page-story,= 35.8.5
+boxy-pkg-deps-hash,= 35.1.6
+boxy-pkg-path,= 35.3.5
+boxy-render-unwrap,= 35.7.9
+boxy-rspack-optimize-sharing-runtime,= 35.2.9
+boxy-scroll-providers,= 35.5.1
+boxy-search-workspace-substrings,= 35.8.6
+boxy-semver,= 35.3.5
+boxy-service,= 35.6.4
+boxy-sitree,= 35.8.7
+boxy-sticky-providers,= 35.1.5
+boxy-story-header,= 35.7.2
+boxy-storybook-addon-changelog,= 35.1.2
+boxy-temper,= 35.1.5
+boxy-test-block,= 35.9.5
+boxy-test-block-fixture,= 35.5.5
+boxy-test-host,= 35.7.8
+boxy-test-maker,= 35.8.2
+boxy-tokens,= 35.5.2
+boxy-tree-providers,= 35.3.9
+boxy-use-calls,= 35.1.8
+boxy-use-what-changed,= 35.4.4
+boxy-validate-implicit-deps,= 35.2.6
+boxy-webpack-test-utils,= 35.2.1
+boxy-wrapper-rspack-plugin,= 35.8.3
+boxy-wrapper-webpack-plugin,= 35.5.8
+bpm-foundation-ai-assistant,= 35.6.2
+bpm-foundation-analytics,= 35.5.1
+bpm-foundation-api,= 35.4.2
+bpm-foundation-app-configs,= 35.9.4
+bpm-foundation-auth,= 35.2.9
+bpm-foundation-base-configs,= 35.6.2
+bpm-foundation-bundle-optimization,= 35.1.1
+bpm-foundation-common,= 35.9.1
+bpm-foundation-date-range,= 35.4.2
+bpm-foundation-delegate-docs,= 35.1.9
+bpm-foundation-feature-flags,= 20.4.2 || = 35.5.2
+bpm-foundation-feedback,= 35.8.8
+bpm-foundation-husky,= 35.7.6
+bpm-foundation-linters,= 35.3.9
+bpm-foundation-nest-keycloak-connect,= 35.8.6
+bpm-foundation-oauth-client,= 35.4.3
+bpm-foundation-rate-us,= 35.3.9
+bpm-foundation-renovate,= 35.2.8
+bpm-foundation-sentry,= 35.8.7
+bpm-foundation-statist-client,= 35.2.4
+bpm-foundation-storage,= 35.8.1
+bpm-foundation-tcs-configs,= 35.3.3
+bpm-foundation-test-jasmine,= 35.7.9
+bpm-foundation-test-jest,= 35.9.3
+bpm-foundation-testing,= 35.4.3
+bpm-ng-security,= 35.8.7
+bpm-renovate-renovate-config,= 35.9.2
+bs-bs-core,= 35.1.6
+caen-caen-core,= 35.5.8
+candy-candy-core,= 35.2.7
+capacity-capacity-core,= 35.3.7
+cards-forms-cards-core-clone,= 35.3.2
+cards-forms-clone-cards-core-clone,= 35.4.9
+cards-forms-clone-credit-clone,= 35.7.1
+cards-forms-clone-debit-clone,= 35.8.6
+cards-forms-credit-clone,= 35.9.5
+cards-forms-debit-clone,= 35.2.3
+cardsmobile-cardsmobile-core,= 35.6.6
+cardsmobile-command-utils,= 35.9.2
+cardsmobile-data-utils,= 35.6.2
+cardsmobile-event-emitter,= 35.2.8
+cardsmobile-http,= 35.3.3
+cardsmobile-notifications,= 35.7.6
+cardsmobile-rs-api,= 35.5.6
+cardsmobile-storage,= 35.6.5
+cbp-exchange-government-cbp-exchange-government-core,= 35.3.3
+certificates-revocation-sw,= 35.6.4
+certificates-revocation-utils,= 35.1.9
+checkout-accounts-holder,= 35.2.3
+checkout-base-analytics-data,= 35.9.1
+checkout-cashback-logic,= 35.4.3
+checkout-checkout-test-block-aff,= 35.9.6
+checkout-commit-pos-order-am,= 35.8.4
+checkout-confirm-pos-order-sms-am,= 35.6.4
+checkout-context,= 35.5.4
+checkout-create-draft-agreement-am,= 35.1.1
+checkout-create-token,= 35.5.6
+checkout-desktop-accounts,= 35.7.4
+checkout-desktop-bnpl,= 35.5.1
+checkout-desktop-cashback,= 35.4.6
+checkout-desktop-input-card,= 35.9.4
+checkout-desktop-legal,= 35.2.8
+checkout-desktop-pay-button,= 35.5.4
+checkout-desktop-pay-widget,= 35.6.3
+checkout-desktop-total,= 35.6.1
+checkout-dolyame-logic,= 35.7.5
+checkout-format-money,= 35.8.6
+checkout-get-installment-client-agreement-am,= 35.1.4
+checkout-iframe,= 35.7.1
+checkout-input-card-logic,= 35.8.8
+checkout-input-email-logic,= 35.8.2
+checkout-legal-logic,= 35.3.7
+checkout-mobile-accounts,= 35.6.8
+checkout-mobile-accounts-old,= 35.6.6
+checkout-mobile-bnpl,= 35.6.9
+checkout-mobile-cashback,= 35.4.9
+checkout-mobile-dolyame,= 35.7.4
+checkout-mobile-input-card,= 35.7.7
+checkout-mobile-input-email,= 35.6.8
+checkout-mobile-legal,= 35.8.8
+checkout-mobile-pay-widget,= 35.9.1
+checkout-mobile-promocode,= 35.6.9
+checkout-mobile-total,= 35.8.9
+checkout-molecule-desktop-status-modal,= 35.9.4
+checkout-molecule-mobile-status-sheet,= 35.7.9
+checkout-parameters,= 35.8.5
+checkout-pay-button-logic,= 35.3.8
+checkout-pay-widget-logic,= 35.3.2
+checkout-post-installment-client-agreement-accept-am,= 35.2.3
+checkout-postpone-until-render,= 35.2.4
+checkout-promocode-logic,= 35.7.7
+checkout-public-tokens,= 35.4.9
+checkout-resend-pos-order-sms-am,= 35.3.3
+checkout-select-pos-offer-am,= 35.2.7
+checkout-storage-service,= 35.2.9
+checkout-storybook-default,= 35.5.1
+checkout-subscription-holder,= 35.7.1
+checkout-test-component,= 35.9.8
+checkout-test-utils,= 35.1.3
+checkout-todo-test,= 35.5.9
+checkout-total-logic,= 35.8.3
+checkout-types,= 35.6.8
+checkout-use-boolean,= 35.4.5
+checkout-use-disable-interaction,= 35.4.9
+checkout-use-notifications,= 35.6.1
+checkout-use-toasts,= 35.3.6
+claims-accounts-lib,= 35.6.6
+claims-api-adapters,= 35.7.8
+claims-api-clients-shared,= 35.1.9
+claims-auth-api-adapters,= 35.3.3
+claims-auth-domain,= 35.5.4
+claims-block-visibility,= 35.3.8
+claims-claims-domain,= 35.1.3
+claims-constants,= 35.2.2
+claims-create-client-validator,= 35.8.9
+claims-domain,= 35.6.7
+claims-enums,= 35.7.6
+claims-fixtures-shared,= 35.8.6
+claims-format-date,= 35.6.5
+claims-format-masked-phone-number,= 35.9.8
+claims-format-money,= 35.5.5
+claims-get-base-url,= 35.4.5
+claims-get-error-string,= 35.5.9
+claims-get-indexed-selector,= 35.8.7
+claims-get-percentage-value,= 35.4.6
+claims-historical-claims-api-adapters,= 35.7.6
+claims-historical-claims-domain,= 35.4.4
+claims-is-mobile-layout,= 35.4.3
+claims-jira-service,= 35.8.3
+claims-microgen-templates,= 35.7.1
+claims-navigate,= 35.2.2
+claims-page-maker-types,= 35.5.1
+claims-patch-url,= 35.3.9
+claims-payout-offer-api,= 35.7.6
+claims-payout-offer-api-adapters,= 35.2.2
+claims-payout-offer-domain,= 35.6.1
+claims-person-api-adapters,= 35.2.4
+claims-person-domain,= 35.5.9
+claims-policies-api-adapters,= 35.6.7
+claims-policies-domain,= 35.3.3
+claims-policy-details-api-adapters,= 35.3.1
+claims-policy-details-domain,= 35.9.3
+claims-shared,= 35.7.1
+claims-types,= 35.8.3
+claims-use-base-analytics,= 35.4.9
+claims-use-callback-once,= 35.6.7
+claims-use-visual-viewport-resizing,= 35.2.8
+cnb-cnb-core,= 35.2.7
+cobrowsing-cobrowsing-core,= 35.5.8
+cobrowsing-configs,= 35.7.5
+cobrowsing-decorators,= 35.2.9
+cobrowsing-exception-filter,= 35.8.3
+cobrowsing-k8s-module,= 35.6.2
+cobrowsing-logger,= 35.7.7
+cobrowsing-redis-module,= 35.4.7
+cobrowsing-test-utils,= 35.3.4
+cobrowsing-utils,= 35.7.3
+constructor-blocks-common,= 35.5.6
+constructor-blocks-landings,= 35.5.7
+constructor-blocks-mailings,= 35.5.7
+constructor-blocks-renderer-landings,= 35.2.5
+constructor-blocks-renderer-mailings,= 35.3.3
+contract-contract-builder,= 35.5.2
+csc-csc-core,= 35.8.6
+custom-plugins-request-factory,= 35.5.4
+dc-dc-core,= 35.3.3
+ded-aa-common-ded-aa-common-core,= 35.1.6
+ded-aa-liza-ded-aa-liza-core,= 35.2.5
+ded-aa-liza-ui-components,= 35.8.7
+ded-ps-ded-ps-core,= 35.9.1
+ded-ps-events-ded-ps-events-core,= 35.4.2
+ded-pwa-bnpl-forms-demo,= 35.9.6
+delivery-ci-microforms,= 35.3.5
+delivery-ci-notify,= 35.2.5
+delivery-ci-pipeline-rules,= 35.9.3
+delivery-ci-quality,= 35.6.2
+delivery-ci-sage,= 0.0.1-security || = 35.6.3
+delivery-ci-storybook,= 0.0.1-security || = 35.5.8
+delivery-ci-storyshots,= 35.3.6
+delivery-ci-tech-holder,= 35.3.4
+delivery-ci-unit,= 35.9.3
+delivery-ci-update-gitlab,= 0.0.1-security || = 35.7.5
+delivery-ci-upgrade-form,= 35.5.9
+delivery-ci-upgrade-from,= 0.0.1-security || = 35.6.9
+delivery-ci-validate,= 35.1.4
+delivery-ci-validate-tinkoff-fb,= 35.6.9
+deposits-common,= 35.5.4
+deposits-overnight,= 20.8.5 || = 35.5.9
+devplatform-api-clients,= 35.6.8
+devplatform-api-endpoint,= 35.2.9
+devplatform-api-v2-endpoint,= 35.6.7
+devplatform-api-v2-resource-mock,= 35.4.1
+devplatform-api-v2-resources,= 35.3.8
+devplatform-api-v2-resources-metadata,= 35.7.7
+devplatform-auth-client,= 0.0.1-security || = 35.2.1
+devplatform-cli,= 35.7.4
+devplatform-cli-contracts,= 35.7.3
+devplatform-cli-plugin-generator,= 35.3.5
+devplatform-cli-plugin-lint,= 35.5.1
+devplatform-cli-plugin-test,= 35.4.5
+devplatform-cli-spa,= 35.7.8
+devplatform-confirm-input,= 0.0.1-security || = 35.9.8
+devplatform-cra-template,= 35.6.2
+devplatform-create-nx-spa,= 35.4.9
+devplatform-data-table,= 35.4.1
+devplatform-di,= 35.5.5
+devplatform-eslint-plugin-nx,= 35.6.5
+devplatform-hooks,= 35.2.1
+devplatform-http-client,= 0.0.1-security || = 35.8.6
+devplatform-humanize-network-error,= 0.0.1-security || = 35.3.8
+devplatform-i18n,= 0.0.1-security || = 35.6.2
+devplatform-iam-client,= 35.5.6
+devplatform-integrations-tests-lib,= 35.2.5
+devplatform-jscodeshift-plugin,= 35.4.1
+devplatform-jscodeshift-transforms,= 35.9.5
+devplatform-jscodeshift-utils,= 35.3.8
+devplatform-markdown,= 35.9.6
+devplatform-npm-versions-checker,= 35.5.9
+devplatform-nx-devkit,= 35.8.5
+devplatform-nx-gle,= 35.5.3
+devplatform-nx-husky,= 0.0.1-security || = 35.7.7
+devplatform-nx-pvm,= 35.2.9
+devplatform-nx-react,= 0.0.1-security || = 35.9.4
+devplatform-nx-spa,= 35.8.7
+devplatform-nx-svelte,= 35.6.8
+devplatform-nx-ts,= 35.1.3
+devplatform-po-declaration-generator,= 0.0.1-security || = 35.2.7
+devplatform-po-loader,= 35.1.8
+devplatform-po-transformer,= 35.1.8
+devplatform-prettier-config,= 35.1.3
+devplatform-react-form,= 0.0.1-security || = 35.8.3
+devplatform-react-hooks,= 35.5.7
+devplatform-react-micro-frontend,= 35.2.1
+devplatform-react-query-s3-client,= 35.8.7
+devplatform-react-rest-client,= 35.4.8
+devplatform-react-scripts,= 35.2.9
+devplatform-react-sentry,= 35.9.8
+devplatform-react-utils,= 0.0.1-security || = 35.6.9
+devplatform-rest-resources-v1,= 35.2.3
+devplatform-rest-resources-v2,= 35.9.7
+devplatform-s3-client,= 35.9.5
+devplatform-s3-resources,= 35.5.1
+devplatform-s3-uploader,= 35.4.4
+devplatform-select-fields,= 0.0.1-security || = 35.2.6
+devplatform-select-user,= 35.4.4
+devplatform-snarkdown,= 35.2.1
+devplatform-spa,= 35.1.4
+devplatform-spa-cli,= 0.0.1-security || = 35.9.2
+devplatform-spa-devtools,= 35.2.6
+devplatform-spa-di,= 35.5.8
+devplatform-spa-feature-toggle,= 35.8.4
+devplatform-spa-plugin-ability,= 35.5.2
+devplatform-spa-plugin-analytics,= 35.5.7
+devplatform-spa-plugin-auth,= 35.4.5
+devplatform-spa-plugin-beaver,= 35.2.2
+devplatform-spa-plugin-cobrowsing,= 35.4.4
+devplatform-spa-plugin-devtools,= 0.0.1-security || = 35.5.6
+devplatform-spa-plugin-dom-render,= 35.5.5
+devplatform-spa-plugin-error-boundary,= 35.4.6
+devplatform-spa-plugin-history,= 0.0.1-security || = 35.1.4
+devplatform-spa-plugin-i18next,= 0.0.1-security || = 35.2.1
+devplatform-spa-plugin-i18next-instance,= 35.5.9
+devplatform-spa-plugin-location,= 0.0.1-security || = 35.9.2
+devplatform-spa-plugin-module,= 35.7.9
+devplatform-spa-plugin-module-loader,= 35.8.5
+devplatform-spa-plugin-notifier,= 35.5.7
+devplatform-spa-plugin-query,= 35.8.5
+devplatform-spa-plugin-root-devtools,= 35.5.6
+devplatform-spa-plugin-root-sentry,= 0.0.1-security || = 35.4.5
+devplatform-spa-plugin-s3,= 35.5.9
+devplatform-spa-plugin-s3-feature-toggle,= 35.7.1
+devplatform-spa-plugin-s3-router,= 0.0.1-security || = 35.1.3
+devplatform-spa-plugin-sentry,= 35.1.1
+devplatform-spa-plugin-suspense,= 0.0.1-security || = 35.6.2
+devplatform-spa-plugin-thermostat,= 35.9.9
+devplatform-spa-route-tree,= 35.1.3
+devplatform-spa-testing,= 35.8.6
+devplatform-spa-tokens,= 35.3.1
+devplatform-spa-ui,= 35.8.2
+devplatform-spa-use-track,= 35.5.3
+devplatform-sre-devplatform-sre-core,= 35.1.8
+devplatform-supafetch,= 35.2.1
+devplatform-table,= 0.0.1-security || = 35.7.6
+devplatform-test-pvm-is-even,= 35.9.5
+devplatform-test-pvm-is-odd,= 35.3.9
+devplatform-translate,= 35.5.3
+devplatform-ui-kit,= 0.0.1-security || = 35.6.2
+devplatform-utils,= 35.5.2
+devplatform-vite-plugin-external,= 0.0.1-security || = 35.3.6
+devplatform-vite-plugin-gle,= 35.3.9
+devplatform-vite-plugin-preserve-css-modules,= 35.6.8
+devplatform-zod-wip-api,= 35.9.3
+dippy-invertor,= 35.1.6
+dlp-dlp-core,= 0.0.1-security || = 35.1.3
+docflow-cryptopro,= 35.1.6
+docsmate-docsmate-core,= 35.9.3
+dolyame-boxy-atom-bnpl-badge,= 35.2.3
+dolyame-boxy-atom-bnpl-button,= 0.0.1-security || = 35.8.3
+dolyame-boxy-atom-bnpl-card,= 0.0.1-security || = 35.5.5
+dolyame-boxy-atom-bnpl-dangerously-html,= 35.5.4
+dolyame-boxy-atom-bnpl-dolyame-button,= 35.7.3
+dolyame-boxy-atom-bnpl-email-form,= 0.0.1-security || = 20.3.3
+dolyame-boxy-atom-bnpl-image-card,= 35.7.7
+dolyame-boxy-atom-bnpl-info-card,= 35.5.5
+dolyame-boxy-atom-bnpl-popup,= 35.9.3
+dolyame-boxy-atom-bnpl-store-button,= 20.5.3
+dolyame-boxy-atom-bnpl-store-button-set,= 35.9.5
+dolyame-boxy-atom-bnpl-text,= 35.8.7
+dolyame-boxy-atom-container,= 35.3.2
+dolyame-boxy-atom-desktop-bnpl-container,= 0.0.1-security || = 35.3.3
+dolyame-boxy-atom-desktop-bnpl-dangerously-html,= 0.0.1-security || = 35.4.8
+dolyame-boxy-atom-desktop-bnpl-highlighted-text,= 35.5.6
+dolyame-boxy-atom-desktop-bnpl-text,= 0.0.1-security || = 35.4.8
+dolyame-boxy-atom-icon-loader,= 35.1.8
+dolyame-boxy-block,= 35.5.2
+dolyame-boxy-component-story-name,= 35.3.3
+dolyame-boxy-desktop-bnpl-button-set,= 35.2.4
+dolyame-boxy-desktop-bnpl-card-gallery,= 0.0.1-security || = 35.5.2
+dolyame-boxy-desktop-bnpl-card-panel,= 35.6.3
+dolyame-boxy-desktop-bnpl-footer,= 35.7.7
+dolyame-boxy-desktop-bnpl-header,= 35.8.8
+dolyame-boxy-desktop-bnpl-image-plus-text,= 35.3.2
+dolyame-boxy-desktop-bnpl-picture-gallery,= 35.6.3
+dolyame-boxy-desktop-bnpl-text-block,= 35.9.7
+dolyame-boxy-desktop-bnpl-title,= 35.6.5
+dolyame-boxy-fonts,= 35.4.8
+dolyame-boxy-independent-bnpl-breadcrumbs,= 35.1.4
+dolyame-boxy-independent-bnpl-button,= 35.3.6
+dolyame-boxy-independent-bnpl-cards,= 35.7.6
+dolyame-boxy-independent-bnpl-code-text,= 0.0.1-security || = 35.7.8
+dolyame-boxy-independent-bnpl-documents,= 35.1.7
+dolyame-boxy-independent-bnpl-features,= 35.9.5
+dolyame-boxy-independent-bnpl-info-images,= 20.7.2
+dolyame-boxy-independent-bnpl-info-slider,= 35.1.9
+dolyame-boxy-independent-bnpl-items,= 35.3.5
+dolyame-boxy-independent-bnpl-main-banner,= 35.2.1
+dolyame-boxy-independent-bnpl-mobile-application,= 35.9.2
+dolyame-boxy-independent-bnpl-navigation,= 35.9.3
+dolyame-boxy-independent-bnpl-open-api,= 0.0.1-security || = 20.8.9
+dolyame-boxy-independent-bnpl-origination,= 0.0.1-security || = 35.6.6
+dolyame-boxy-independent-bnpl-partners,= 35.9.3
+dolyame-boxy-independent-bnpl-picture-gallery,= 35.2.6
+dolyame-boxy-independent-bnpl-preset-container,= 0.0.1-security || = 35.3.7
+dolyame-boxy-independent-bnpl-scheme,= 35.7.6
+dolyame-boxy-independent-bnpl-swagger,= 35.6.8
+dolyame-boxy-independent-bnpl-table,= 35.3.4
+dolyame-boxy-independent-bnpl-text-block,= 35.5.3
+dolyame-boxy-independent-bnpl-title,= 35.7.3
+dolyame-boxy-independent-bnpl-video,= 35.4.4
+dolyame-boxy-markdown,= 35.9.4
+dolyame-boxy-mobile-bnpl-button-set,= 35.8.1
+dolyame-boxy-mobile-bnpl-card-gallery,= 35.9.5
+dolyame-boxy-mobile-bnpl-card-panel,= 35.3.4
+dolyame-boxy-mobile-bnpl-footer,= 35.4.7
+dolyame-boxy-mobile-bnpl-header,= 35.3.6
+dolyame-boxy-mobile-bnpl-image-plus-text,= 35.6.6
+dolyame-boxy-mobile-bnpl-picture-gallery,= 35.2.9
+dolyame-boxy-mobile-bnpl-popup,= 35.1.9
+dolyame-boxy-mobile-bnpl-text-block,= 35.1.8
+dolyame-boxy-mobile-bnpl-title,= 35.1.7
+dolyame-boxy-scroll,= 35.9.9
+dolyame-boxy-stories,= 35.9.7
+dolyame-boxy-stories-of-block,= 35.8.6
+dolyame-ui-accordion,= 35.2.6
+dolyame-ui-action,= 35.6.3
+dolyame-ui-avatar,= 35.9.8
+dolyame-ui-badge,= 35.4.4
+dolyame-ui-button,= 35.9.6
+dolyame-ui-calendar,= 35.1.8
+dolyame-ui-carousel,= 35.3.3
+dolyame-ui-chart,= 35.7.2
+dolyame-ui-checkbox,= 35.6.9
+dolyame-ui-clickable,= 35.6.2
+dolyame-ui-codemods,= 35.2.6
+dolyame-ui-colors,= 35.8.9
+dolyame-ui-confirmation,= 35.3.3
+dolyame-ui-constants,= 35.5.9
+dolyame-ui-container,= 35.3.7
+dolyame-ui-draggable,= 35.4.6
+dolyame-ui-dropdown,= 35.6.2
+dolyame-ui-editor,= 35.6.6
+dolyame-ui-filter,= 35.5.3
+dolyame-ui-flag,= 35.7.6
+dolyame-ui-footer,= 35.5.8
+dolyame-ui-grid,= 35.7.4
+dolyame-ui-group,= 35.9.7
+dolyame-ui-icon,= 35.7.5
+dolyame-ui-input,= 35.7.6
+dolyame-ui-island,= 35.7.4
+dolyame-ui-label,= 35.7.8
+dolyame-ui-layout,= 35.9.8
+dolyame-ui-link,= 35.8.5
+dolyame-ui-list,= 35.2.6
+dolyame-ui-loader,= 35.1.5
+dolyame-ui-menu,= 35.6.1
+dolyame-ui-mixins,= 35.1.4
+dolyame-ui-money,= 35.6.1
+dolyame-ui-navigation,= 35.7.3
+dolyame-ui-notification,= 35.5.4
+dolyame-ui-pagination,= 35.2.5
+dolyame-ui-pie,= 35.5.3
+dolyame-ui-popover,= 35.8.7
+dolyame-ui-popup,= 35.8.7
+dolyame-ui-portal,= 35.3.6
+dolyame-ui-radio,= 35.2.2
+dolyame-ui-react-dom-wrapper,= 35.8.9
+dolyame-ui-react-version-switch,= 35.6.1
+dolyame-ui-react-wrapper,= 35.4.2
+dolyame-ui-scroll,= 35.4.3
+dolyame-ui-select,= 35.9.5
+dolyame-ui-skeleton,= 35.2.5
+dolyame-ui-slider,= 35.3.7
+dolyame-ui-stepper,= 35.7.5
+dolyame-ui-storybook-menu,= 35.5.6
+dolyame-ui-styles,= 35.1.4
+dolyame-ui-swiper,= 35.7.7
+dolyame-ui-table,= 35.5.4
+dolyame-ui-tabs,= 35.3.2
+dolyame-ui-tag,= 35.9.9
+dolyame-ui-test,= 35.2.5
+dolyame-ui-text,= 35.7.4
+dolyame-ui-themes,= 35.6.3
+dolyame-ui-toggle,= 35.4.1
+dolyame-ui-tooltip,= 35.8.8
+dolyame-ui-types,= 35.8.2
+dolyame-ui-utils,= 35.6.7
+dp-owners,= 35.2.6
+dp-web-header,= 35.3.8
+dwhetlfront-dwhetlfront-core,= 35.8.1
+dws-frontend-dws-frontend-core,= 35.4.3
+dwsai-dwsai-core,= 35.8.4
+eacq-acq-menu,= 35.2.1
+eacq-acq-menu-core,= 35.9.7
+eacq-api,= 35.6.1
+eacq-auth,= 35.4.8
+form-bnpl-dolyame-component-object,= 20.8.9

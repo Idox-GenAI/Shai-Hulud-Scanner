@@ -15,7 +15,21 @@ import (
 	"shai-hulud-scanner/pkg/ioc"
 	"shai-hulud-scanner/pkg/report"
 	"shai-hulud-scanner/pkg/scanner"
+	"shai-hulud-scanner/resources"
 )
+
+func embeddedCustomPackageCount(t *testing.T) int {
+	t.Helper()
+	constraints, err := ioc.ParsePackageCSV(bytes.NewReader(resources.IOCPackagesCustomCSV))
+	if err != nil {
+		t.Fatalf("failed to parse embedded custom package IOCs: %v", err)
+	}
+	packages := make(map[string]struct{}, len(constraints))
+	for _, constraint := range constraints {
+		packages[constraint.Package] = struct{}{}
+	}
+	return len(packages)
+}
 
 func TestDefaultConfig(t *testing.T) {
 	cfg := scanner.DefaultConfig()
@@ -165,8 +179,8 @@ func TestFeedCaching_SaveAndLoadFromCache(t *testing.T) {
 
 	feedHandler := func(w http.ResponseWriter, r *http.Request) {
 		// Mix of scoped and unscoped packages with extra CSV-like fields.
-		fmt.Fprintln(w, "@evil/scopepkg,Some description")
-		fmt.Fprintln(w, "bad-unscoped,Another field")
+		_, _ = fmt.Fprintln(w, "@evil/scopepkg,Some description")
+		_, _ = fmt.Fprintln(w, "bad-unscoped,Another field")
 	}
 	server := httptest.NewServer(http.HandlerFunc(feedHandler))
 	defer server.Close()
@@ -190,8 +204,9 @@ func TestFeedCaching_SaveAndLoadFromCache(t *testing.T) {
 		t.Fatalf("first Run() error = %v", err)
 	}
 
-	if rpt1.CompromisedPkgCount != 2 {
-		t.Fatalf("first run CompromisedPkgCount = %d, want 2", rpt1.CompromisedPkgCount)
+	wantCount := embeddedCustomPackageCount(t) + 2
+	if rpt1.CompromisedPkgCount != wantCount {
+		t.Fatalf("first run CompromisedPkgCount = %d, want %d", rpt1.CompromisedPkgCount, wantCount)
 	}
 
 	data, err := os.ReadFile(cacheFile)
@@ -221,8 +236,8 @@ func TestFeedCaching_SaveAndLoadFromCache(t *testing.T) {
 		t.Fatalf("second Run() error = %v", err)
 	}
 
-	if rpt2.CompromisedPkgCount != 2 {
-		t.Fatalf("second run CompromisedPkgCount = %d, want 2 (loaded from cache)", rpt2.CompromisedPkgCount)
+	if rpt2.CompromisedPkgCount != wantCount {
+		t.Fatalf("second run CompromisedPkgCount = %d, want %d (embedded plus cache)", rpt2.CompromisedPkgCount, wantCount)
 	}
 
 	output2 := buf2.String()
@@ -265,8 +280,9 @@ func TestFeedCaching_UsesFreshCacheWhenRecent(t *testing.T) {
 		t.Fatalf("Run() error = %v", err)
 	}
 
-	if rpt.CompromisedPkgCount != 1 {
-		t.Fatalf("CompromisedPkgCount = %d, want 1 (from fresh cache)", rpt.CompromisedPkgCount)
+	wantCount := embeddedCustomPackageCount(t) + 1
+	if rpt.CompromisedPkgCount != wantCount {
+		t.Fatalf("CompromisedPkgCount = %d, want %d (embedded plus fresh cache)", rpt.CompromisedPkgCount, wantCount)
 	}
 
 	output := buf.String()
@@ -333,8 +349,9 @@ func TestFeedCaching_FreshCSVCacheParsesPackageFieldAndSkipsHeader(t *testing.T)
 		t.Fatalf("Run() error = %v", err)
 	}
 
-	if rpt.CompromisedPkgCount != 2 {
-		t.Fatalf("CompromisedPkgCount = %d, want 2 (header and empty rows skipped)", rpt.CompromisedPkgCount)
+	wantCount := embeddedCustomPackageCount(t) + 2
+	if rpt.CompromisedPkgCount != wantCount {
+		t.Fatalf("CompromisedPkgCount = %d, want %d (embedded plus parsed cache)", rpt.CompromisedPkgCount, wantCount)
 	}
 
 	findings := rpt.GetFindingsByType(report.FindingNodeModules)
@@ -376,8 +393,8 @@ func TestFeedCaching_UsesFeedWhenCacheStale(t *testing.T) {
 	}
 
 	feedHandler := func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintln(w, "new-pkg-one")
-		fmt.Fprintln(w, "new-pkg-two")
+		_, _ = fmt.Fprintln(w, "new-pkg-one")
+		_, _ = fmt.Fprintln(w, "new-pkg-two")
 	}
 	server := httptest.NewServer(http.HandlerFunc(feedHandler))
 	defer server.Close()
@@ -400,8 +417,9 @@ func TestFeedCaching_UsesFeedWhenCacheStale(t *testing.T) {
 		t.Fatalf("Run() error = %v", err)
 	}
 
-	if rpt.CompromisedPkgCount != 2 {
-		t.Fatalf("CompromisedPkgCount = %d, want 2 (from refreshed feed)", rpt.CompromisedPkgCount)
+	wantCount := embeddedCustomPackageCount(t) + 2
+	if rpt.CompromisedPkgCount != wantCount {
+		t.Fatalf("CompromisedPkgCount = %d, want %d (embedded plus refreshed feed)", rpt.CompromisedPkgCount, wantCount)
 	}
 
 	data, err := os.ReadFile(cacheFile)
@@ -472,8 +490,8 @@ func TestDetectsCompromisedPackageInLockfile(t *testing.T) {
 	cacheFile := filepath.Join(tmpDir, "compromised-cache.txt")
 
 	feedHandler := func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintln(w, "evil-package")
-		fmt.Fprintln(w, "@evil/scoped-pkg")
+		_, _ = fmt.Fprintln(w, "evil-package")
+		_, _ = fmt.Fprintln(w, "@evil/scoped-pkg")
 	}
 	server := httptest.NewServer(http.HandlerFunc(feedHandler))
 	defer server.Close()
@@ -931,7 +949,7 @@ func TestDetectsScopedPackageInYarnLock(t *testing.T) {
 	cacheFile := filepath.Join(tmpDir, "compromised-cache.txt")
 
 	feedHandler := func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintln(w, "@evil/malicious-pkg")
+		_, _ = fmt.Fprintln(w, "@evil/malicious-pkg")
 	}
 	server := httptest.NewServer(http.HandlerFunc(feedHandler))
 	defer server.Close()
@@ -993,7 +1011,7 @@ func TestDetectsPackageInPnpmLock(t *testing.T) {
 	cacheFile := filepath.Join(tmpDir, "compromised-cache.txt")
 
 	feedHandler := func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintln(w, "bad-pnpm-pkg")
+		_, _ = fmt.Fprintln(w, "bad-pnpm-pkg")
 	}
 	server := httptest.NewServer(http.HandlerFunc(feedHandler))
 	defer server.Close()
@@ -1049,13 +1067,21 @@ func TestParallelScansCompleteWithoutRace(t *testing.T) {
 	// Run with -race to verify the concurrent scan paths remain race-free.
 	tmpDir := t.TempDir()
 
-	os.WriteFile(filepath.Join(tmpDir, "package.json"), []byte(`{
+	if err := os.WriteFile(filepath.Join(tmpDir, "package.json"), []byte(`{
 		"name": "test",
 		"dependencies": {"@crowdstrike/test": "1.0.0"}
-	}`), 0o644)
-	os.WriteFile(filepath.Join(tmpDir, "test.js"), []byte("process.env.AWS_ACCESS_KEY"), 0o644)
-	os.MkdirAll(filepath.Join(tmpDir, ".github", "workflows"), 0o755)
-	os.WriteFile(filepath.Join(tmpDir, ".github", "workflows", "ci.yml"), []byte("runs-on: ubuntu-latest"), 0o644)
+	}`), 0o644); err != nil {
+		t.Fatalf("failed to write package.json: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(tmpDir, "test.js"), []byte("process.env.AWS_ACCESS_KEY"), 0o644); err != nil {
+		t.Fatalf("failed to write test.js: %v", err)
+	}
+	if err := os.MkdirAll(filepath.Join(tmpDir, ".github", "workflows"), 0o755); err != nil {
+		t.Fatalf("failed to create workflow directory: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(tmpDir, ".github", "workflows", "ci.yml"), []byte("runs-on: ubuntu-latest"), 0o644); err != nil {
+		t.Fatalf("failed to write workflow: %v", err)
+	}
 
 	var buf bytes.Buffer
 	cfg := &scanner.Config{

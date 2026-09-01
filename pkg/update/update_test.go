@@ -120,7 +120,7 @@ func TestCheckAndDownloadWithChecksum(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/repos/owner/repo/releases/latest":
-			fmt.Fprintf(w, `{
+			_, _ = fmt.Fprintf(w, `{
 				"tag_name": "v1.2.4",
 				"assets": [
 					{"name": %q, "browser_download_url": %q},
@@ -130,7 +130,7 @@ func TestCheckAndDownloadWithChecksum(t *testing.T) {
 		case "/download/" + assetName:
 			_, _ = w.Write(assetBody)
 		case "/download/checksums.txt":
-			fmt.Fprintf(w, "%x  %s\n", assetSum, assetName)
+			_, _ = fmt.Fprintf(w, "%x  %s\n", assetSum, assetName)
 		default:
 			http.NotFound(w, r)
 		}
@@ -176,7 +176,7 @@ func TestCheckAndDownloadFailsMissingChecksumEntry(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/repos/owner/repo/releases/latest":
-			fmt.Fprintf(w, `{
+			_, _ = fmt.Fprintf(w, `{
 				"tag_name": "v1.2.4",
 				"assets": [
 					{"name": %q, "browser_download_url": %q},
@@ -186,7 +186,7 @@ func TestCheckAndDownloadFailsMissingChecksumEntry(t *testing.T) {
 		case "/download/" + assetName:
 			_, _ = w.Write(assetBody)
 		case "/download/checksums.txt":
-			fmt.Fprint(w, "abc123  another-file.tar.gz\n")
+			_, _ = fmt.Fprint(w, "abc123  another-file.tar.gz\n")
 		default:
 			http.NotFound(w, r)
 		}
@@ -257,7 +257,7 @@ func TestCheckAndDownloadRejectsUnsafeSelectedAssetBeforeDownload(t *testing.T) 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/repos/owner/repo/releases/latest":
-			fmt.Fprintf(w, `{
+			_, _ = fmt.Fprintf(w, `{
 				"tag_name": "v1.2.4",
 				"assets": [
 					{"name": %q, "browser_download_url": %q}
@@ -297,7 +297,7 @@ func TestCheckAndDownloadRejectsUnsafeSelectedAssetBeforeDownload(t *testing.T) 
 
 func TestCheckAndDownloadNoUpdate(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprint(w, `{"tag_name":"v1.2.3","assets":[]}`)
+		_, _ = fmt.Fprint(w, `{"tag_name":"v1.2.3","assets":[]}`)
 	}))
 	defer server.Close()
 

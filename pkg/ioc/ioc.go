@@ -31,6 +31,9 @@ var MaliciousFileNames = []string{
 	"setup_bun.js",
 	"bun_environment.js",
 	"discussion.yaml",
+	// Mini Shai-Hulud openapi-react-query-codegen compromise (August 2026)
+	"3FWCvzduYZg.js",
+	"is_it_this_simple.js",
 	// Exfiltration artifacts
 	"truffleSecrets.json",
 	"actionsSecrets.json",
@@ -47,6 +50,12 @@ var SuspiciousBranchPatterns = []string{
 	"shai-hulud",
 	"shai_hulud",
 	"SHA1HULUD",
+}
+
+// SuspiciousGitRemotePatterns contains repository paths used to stage malicious code.
+var SuspiciousGitRemotePatterns = []string{
+	"shai-hulud",
+	"p00paboot/openapi-react-query-codegen",
 }
 
 // SuspiciousWorkflowPatterns contains patterns found in malicious GitHub Actions workflows.
@@ -93,6 +102,8 @@ var SuspiciousFileNames = []string{
 	"shai-hulud.js",
 	"shai_hulud.js",
 	"tanstack_runner.js",
+	"3FWCvzduYZg.js",
+	"binding.gyp",
 }
 
 // MaliciousSHA256 maps known malicious SHA256 hashes to their descriptions.
@@ -107,6 +118,9 @@ var MaliciousSHA256 = map[string]string{
 	"aba1fcbd15c6ba6d9b96e34cec287660fff4a31632bf76f2a766c499f55ca1ee": "Shai-Hulud malicious file",
 	"ab4fcadaec49c03278063dd269ea5eef82d24f2124a8e15d7b90f2fa8601266c": "Mini Shai-Hulud router_init.js/router_runtime.js payload",
 	"2ec78d556d696e208927cc503d48e4b5eb56b31abc2870c2ed2e98d6be27fc96": "Mini Shai-Hulud tanstack_runner.js/router_init.js payload",
+	"d3246926b20a8d021ed7de0ac8e9eee1dda986088f84ba18f31cb2042a121f5d": "Mini Shai-Hulud openapi-react-query-codegen binding.gyp payload",
+	"59370c67b54a0ccaedd265e2356f04540b2fba1e1845300ef6de4d5437d99380": "Mini Shai-Hulud openapi-react-query-codegen 3FWCvzduYZg.js payload (1.6.3)",
+	"b49afb7dba64cd99b357ce7c652c823a3707f28e130bd5c6645851a7adc030d6": "Mini Shai-Hulud openapi-react-query-codegen 3FWCvzduYZg.js payload (0.5.4)",
 }
 
 // MaliciousSHA1 maps known malicious SHA1 hashes to their descriptions (Shai-Hulud 2.0).
@@ -381,6 +395,16 @@ func ContainsSuspiciousBranchPattern(branchName string) bool {
 		}
 	}
 	return false
+}
+
+// ContainsSuspiciousGitRemotePattern checks if a Git remote contains a known malicious repository path.
+func ContainsSuspiciousGitRemotePattern(remote string) (string, bool) {
+	for _, pattern := range SuspiciousGitRemotePatterns {
+		if containsIgnoreCase(remote, pattern) {
+			return pattern, true
+		}
+	}
+	return "", false
 }
 
 // ContainsSuspiciousWorkflowPattern checks if content contains suspicious workflow patterns.

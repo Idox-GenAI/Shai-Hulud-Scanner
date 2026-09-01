@@ -80,6 +80,35 @@ func TestIsCompromisedInstalledPackageReadsVersionForPinnedIOC(t *testing.T) {
 	}
 }
 
+func TestLoadCompromisedPackagesIncludesEmbeddedCustomFeedOffline(t *testing.T) {
+	origURLs := append([]string(nil), ioc.PackageFeedURLs...)
+	defer func() { ioc.PackageFeedURLs = origURLs }()
+	ioc.PackageFeedURLs = nil
+
+	var out bytes.Buffer
+	s := New(&Config{Output: &out})
+	if err := s.loadCompromisedPackages(); err != nil {
+		t.Fatalf("loadCompromisedPackages() error = %v", err)
+	}
+
+	const packageName = "@7nohe/openapi-react-query-codegen"
+	for _, version := range []string{
+		"0.0.0-365d4eb738d3146583431948d3ba6e27a32556be",
+		"0.0.0-ec7876d6c917dad516ba69bbfafc948b834bf0ab",
+		"0.5.4",
+		"3.0.4",
+	} {
+		if !s.isCompromisedPackageVersion(packageName, version) {
+			t.Errorf("embedded custom IOC missing %s@%s", packageName, version)
+		}
+	}
+	for _, version := range []string{"0.5.3", "1.6.2", "2.2.0", "3.0.2"} {
+		if s.isCompromisedPackageVersion(packageName, version) {
+			t.Errorf("known-good adjacent version matched: %s@%s", packageName, version)
+		}
+	}
+}
+
 func TestScanWorkflowsSkipsNodeModules(t *testing.T) {
 	tmpDir := t.TempDir()
 	rootWorkflowDir := filepath.Join(tmpDir, ".github", "workflows")
@@ -180,6 +209,7 @@ func TestScanHashesFindsAllParallelCandidates(t *testing.T) {
 		filepath.Join("nested", "two.ts"),
 		filepath.Join("node_modules", "dep", "three.js"),
 		filepath.Join("node_modules", "dep", "four.ts"),
+		filepath.Join("node_modules", "dep", "binding.gyp"),
 	} {
 		path := filepath.Join(tmpDir, rel)
 		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
@@ -199,8 +229,47 @@ func TestScanHashesFindsAllParallelCandidates(t *testing.T) {
 	s.scanHashes()
 
 	findings := s.report.GetFindingsByType(report.FindingMalwareHash)
-	if len(findings) != 4 {
-		t.Fatalf("hash findings = %d, want 4: %+v", len(findings), findings)
+	if len(findings) != 5 {
+		t.Fatalf("hash findings = %d, want 5: %+v", len(findings), findings)
+	}
+}
+
+func TestScanHashesChecksNamedCandidatesInAllModes(t *testing.T) {
+	content := []byte("named-non-javascript-hash-candidate")
+	sha, err := pkghash.ComputeSHA256FromReader(bytes.NewReader(content))
+	if err != nil {
+		t.Fatalf("failed to hash test payload: %v", err)
+	}
+	origDesc, existed := ioc.MaliciousSHA256[sha]
+	ioc.MaliciousSHA256[sha] = "named hash candidate"
+	defer func() {
+		if existed {
+			ioc.MaliciousSHA256[sha] = origDesc
+		} else {
+			delete(ioc.MaliciousSHA256, sha)
+		}
+	}()
+
+	for _, mode := range []ScanMode{ScanModeQuick, ScanModeFull} {
+		t.Run(string(mode), func(t *testing.T) {
+			tmpDir := t.TempDir()
+			path := filepath.Join(tmpDir, "node_modules", "@7nohe", "openapi-react-query-codegen", "binding.gyp")
+			if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+				t.Fatalf("failed to create package directory: %v", err)
+			}
+			if err := os.WriteFile(path, content, 0o644); err != nil {
+				t.Fatalf("failed to write binding.gyp: %v", err)
+			}
+
+			var out bytes.Buffer
+			s := New(&Config{RootPaths: []string{tmpDir}, ScanMode: mode, Output: &out})
+			s.scanHashes()
+
+			findings := s.report.GetFindingsByType(report.FindingMalwareHash)
+			if len(findings) != 1 || findings[0].Location != path {
+				t.Fatalf("hash findings = %+v, want one finding at %s", findings, path)
+			}
+		})
 	}
 }
 

@@ -102,6 +102,9 @@ func TestIsMaliciousFileName(t *testing.T) {
 		{"bun_environment.js", "bun_environment.js", true},
 		{"discussion.yaml", "discussion.yaml", true},
 		{"package-updated.tgz", "package-updated.tgz", true},
+		{"openapi loader", "3FWCvzduYZg.js", true},
+		{"openapi prerelease script", "is_it_this_simple.js", true},
+		{"generic binding.gyp is not a file IOC", "binding.gyp", false},
 		{"normal.js", "normal.js", false},
 		{"index.js", "index.js", false},
 		{"empty", "", false},
@@ -150,6 +153,8 @@ func TestIsSuspiciousFileName(t *testing.T) {
 		{"router_runtime.js", "router_runtime.js", true},
 		{"shai-hulud.js", "shai-hulud.js", true},
 		{"tanstack_runner.js", "tanstack_runner.js", true},
+		{"openapi loader", "3FWCvzduYZg.js", true},
+		{"binding.gyp hash candidate", "binding.gyp", true},
 		{"normal.js", "normal.js", false},
 		{"app.js", "app.js", false},
 	}
@@ -183,6 +188,44 @@ func TestContainsSuspiciousBranchPattern(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := ioc.ContainsSuspiciousBranchPattern(tt.branchName); got != tt.want {
 				t.Errorf("ContainsSuspiciousBranchPattern(%q) = %v, want %v", tt.branchName, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestContainsSuspiciousGitRemotePattern(t *testing.T) {
+	tests := []struct {
+		name        string
+		remote      string
+		wantPattern string
+		wantFound   bool
+	}{
+		{
+			name:        "openapi attacker HTTPS remote",
+			remote:      "https://github.com/p00paboot/openapi-react-query-codegen.git",
+			wantPattern: "p00paboot/openapi-react-query-codegen",
+			wantFound:   true,
+		},
+		{
+			name:        "openapi attacker SSH remote",
+			remote:      "git@github.com:p00paboot/openapi-react-query-codegen.git",
+			wantPattern: "p00paboot/openapi-react-query-codegen",
+			wantFound:   true,
+		},
+		{
+			name:        "legacy shai-hulud remote",
+			remote:      "https://github.com/example/shai-hulud.git",
+			wantPattern: "shai-hulud",
+			wantFound:   true,
+		},
+		{name: "unrelated remote", remote: "https://github.com/example/project.git"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			pattern, found := ioc.ContainsSuspiciousGitRemotePattern(tt.remote)
+			if pattern != tt.wantPattern || found != tt.wantFound {
+				t.Fatalf("ContainsSuspiciousGitRemotePattern(%q) = (%q, %t), want (%q, %t)", tt.remote, pattern, found, tt.wantPattern, tt.wantFound)
 			}
 		})
 	}
@@ -321,7 +364,14 @@ func TestMaliciousFileNames(t *testing.T) {
 		t.Error("MaliciousFileNames should not be empty")
 	}
 
-	expectedFiles := []string{"shai-hulud.js", "setup_bun.js", "bun_environment.js", "package-updated.tgz"}
+	expectedFiles := []string{
+		"shai-hulud.js",
+		"setup_bun.js",
+		"bun_environment.js",
+		"package-updated.tgz",
+		"3FWCvzduYZg.js",
+		"is_it_this_simple.js",
+	}
 	for _, expected := range expectedFiles {
 		found := slices.Contains(ioc.MaliciousFileNames, expected)
 		if !found {
@@ -416,6 +466,7 @@ func TestIsCompromisedNamespace(t *testing.T) {
 		{"yoobic is compromised", "@yoobic", true},
 		{"tanstack from custom CSV is compromised", "@tanstack", true},
 		{"opensearch-project from custom CSV is compromised", "@opensearch-project", true},
+		{"7nohe from custom CSV is compromised", "@7nohe", true},
 		{"random namespace is not compromised", "@random-namespace", false},
 		{"angular is not compromised", "@angular", false},
 		{"types is not compromised", "@types", false},
@@ -444,6 +495,7 @@ func TestCompromisedNamespacesList(t *testing.T) {
 		"@nativescript-community",
 		"@tanstack",
 		"@opensearch-project",
+		"@7nohe",
 	}
 	for _, expected := range expectedNamespaces {
 		found := slices.Contains(ioc.CompromisedNamespaces, expected)
@@ -464,7 +516,7 @@ func TestCompromisedNamespacesIncludesCustomCSVScopes(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to open custom IOC package CSV: %v", err)
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	constraints, err := ioc.ParsePackageCSV(f)
 	if err != nil {
@@ -485,6 +537,45 @@ func TestCompromisedNamespacesIncludesCustomCSVScopes(t *testing.T) {
 	}
 }
 
+func TestOpenAPIReactQueryCodegenCompromisedVersions(t *testing.T) {
+	f, err := os.Open(filepath.Join("..", "..", "resources", "ioc-packages-custom.csv"))
+	if err != nil {
+		t.Fatalf("failed to open custom IOC package CSV: %v", err)
+	}
+	defer func() { _ = f.Close() }()
+
+	constraints, err := ioc.ParsePackageCSV(f)
+	if err != nil {
+		t.Fatalf("ParsePackageCSV() error = %v", err)
+	}
+
+	want := []string{
+		"0.0.0-365d4eb738d3146583431948d3ba6e27a32556be",
+		"0.0.0-ec7876d6c917dad516ba69bbfafc948b834bf0ab",
+		"0.5.4",
+		"0.5.5",
+		"1.6.3",
+		"1.6.4",
+		"2.2.1",
+		"2.2.2",
+		"3.0.3",
+		"3.0.4",
+	}
+	matches := 0
+	for _, constraint := range constraints {
+		if constraint.Package != "@7nohe/openapi-react-query-codegen" {
+			continue
+		}
+		matches++
+		if !slices.Equal(constraint.Versions, want) {
+			t.Fatalf("openapi-react-query-codegen versions = %#v, want %#v", constraint.Versions, want)
+		}
+	}
+	if matches != 1 {
+		t.Fatalf("openapi-react-query-codegen CSV rows = %d, want 1", matches)
+	}
+}
+
 func TestNewMaliciousSHA256Hashes(t *testing.T) {
 	newHashes := []string{
 		"de0e25a3e6c1e1e5998b306b7141b3dc4c0088da9d7bb47c1c00c91e6e4f85d6",
@@ -493,6 +584,9 @@ func TestNewMaliciousSHA256Hashes(t *testing.T) {
 		"aba1fcbd15c6ba6d9b96e34cec287660fff4a31632bf76f2a766c499f55ca1ee",
 		"ab4fcadaec49c03278063dd269ea5eef82d24f2124a8e15d7b90f2fa8601266c",
 		"2ec78d556d696e208927cc503d48e4b5eb56b31abc2870c2ed2e98d6be27fc96",
+		"d3246926b20a8d021ed7de0ac8e9eee1dda986088f84ba18f31cb2042a121f5d",
+		"59370c67b54a0ccaedd265e2356f04540b2fba1e1845300ef6de4d5437d99380",
+		"b49afb7dba64cd99b357ce7c652c823a3707f28e130bd5c6645851a7adc030d6",
 	}
 
 	for _, hash := range newHashes {
