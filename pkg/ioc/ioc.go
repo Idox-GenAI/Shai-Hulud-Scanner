@@ -5,6 +5,7 @@ import (
 	"encoding/csv"
 	"fmt"
 	"io"
+	"regexp"
 	"slices"
 	"strings"
 
@@ -34,6 +35,14 @@ var MaliciousFileNames = []string{
 	// Mini Shai-Hulud openapi-react-query-codegen compromise (August 2026)
 	"3FWCvzduYZg.js",
 	"is_it_this_simple.js",
+	"sysvinit-detect-fash.sh",
+	"sysvinit-detect-fash.service",
+	"com.user.sysvinit-detect-fash.plist",
+	// Mini Shai-Hulud tensorlake compromise (October 2026)
+	"Math_Symbol.js",
+	"gh-token-monitor.sh",
+	"gh-token-monitor.service",
+	"tmp.ts018051808.lock",
 	// Exfiltration artifacts
 	"truffleSecrets.json",
 	"actionsSecrets.json",
@@ -43,6 +52,28 @@ var MaliciousFileNames = []string{
 // MaliciousFilePaths contains exact filesystem paths for known malicious artifacts.
 var MaliciousFilePaths = []string{
 	"/tmp/tmp.987654321.lock",
+	"/var/tmp/.shit",
+}
+
+// MaliciousRelativePaths identifies artifacts relative to a scan root.
+// Generic names such as monitor.ps1 require the campaign-specific parent path.
+var MaliciousRelativePaths = []string{
+	// https://socket.dev/blog/openapi-react-query-codegen-npm-compromise
+	".local/bin/sysvinit-detect-fash.sh",
+	".config/sysvinit-detect-fash/fox",
+	".config/sysvinit-detect-fash/fash-detected",
+	".config/sysvinit-detect-fash/runit",
+	"Library/LaunchAgents/com.user.sysvinit-detect-fash.plist",
+	".config/systemd/user/sysvinit-detect-fash.service",
+	"node_modules/@7nohe/openapi-react-query-codegen/nu.js",
+	".local/bin/gh-token-monitor.sh",
+	".config/systemd/user/gh-token-monitor.service",
+	"AppData/Local/gh-token-monitor/monitor.ps1",
+}
+
+// MaliciousBranchNames contains exact branch names planted by the worm.
+var MaliciousBranchNames = []string{
+	"dependabot/github_actions/format/setup-formatter",
 }
 
 // SuspiciousBranchPatterns contains git branch name patterns associated with Shai-Hulud.
@@ -68,6 +99,14 @@ var SuspiciousWorkflowPatterns = []string{
 	"bb8ca5f6-4175-45d2-b042-fc9ebb8170b7",
 }
 
+// The conjunction identifies the reported secret-dumping workflow without
+// classifying ordinary Claude reviews or artifact uploads as malicious.
+var openAPISecretDumpPatterns = []*regexp.Regexp{
+	regexp.MustCompile(`(?m)^[\t ]*name:[\t ]*["']?ClaudeCode Review["']?[\t ]*\r?$`),
+	regexp.MustCompile(`(?i)\btoJSON\s*\(\s*secrets\s*\)`),
+	regexp.MustCompile(`(?m)^[\t ]*path:[\t ]*["']?res\.txt["']?[\t ]*\r?$`),
+}
+
 // CloudCredentialPaths contains relative paths to cloud credential files.
 var CloudCredentialPaths = []string{
 	".aws/credentials",
@@ -90,6 +129,8 @@ var SuspiciousHookPatterns = []string{
 	"\\temp\\",
 	"powershell",
 	"cmd /c",
+	"3FWCvzduYZg.js",
+	"is_it_this_simple.js",
 }
 
 // SuspiciousFileNames contains filenames that should be checked for malware hashes.
@@ -103,7 +144,11 @@ var SuspiciousFileNames = []string{
 	"shai_hulud.js",
 	"tanstack_runner.js",
 	"3FWCvzduYZg.js",
+	"is_it_this_simple.js",
 	"binding.gyp",
+	"setup.mjs",
+	"Math_Symbol.js",
+	"tensorlake-0.5.144.tgz",
 }
 
 // MaliciousSHA256 maps known malicious SHA256 hashes to their descriptions.
@@ -120,14 +165,19 @@ var MaliciousSHA256 = map[string]string{
 	"2ec78d556d696e208927cc503d48e4b5eb56b31abc2870c2ed2e98d6be27fc96": "Mini Shai-Hulud tanstack_runner.js/router_init.js payload",
 	"d3246926b20a8d021ed7de0ac8e9eee1dda986088f84ba18f31cb2042a121f5d": "Mini Shai-Hulud openapi-react-query-codegen binding.gyp payload",
 	"59370c67b54a0ccaedd265e2356f04540b2fba1e1845300ef6de4d5437d99380": "Mini Shai-Hulud openapi-react-query-codegen 3FWCvzduYZg.js payload (1.6.3)",
-	"b49afb7dba64cd99b357ce7c652c823a3707f28e130bd5c6645851a7adc030d6": "Mini Shai-Hulud openapi-react-query-codegen 3FWCvzduYZg.js payload (0.5.4)",
+	"b49afb7dba04cd99b357ce7c652c823a3707f28e130bd5c6645851a7adc030d6": "Mini Shai-Hulud openapi-react-query-codegen 3FWCvzduYZg.js payload (0.5.4)",
+	// https://safedep.io/tensorlake-npm-compromise-mini-shai-hulud/
+	"25a0735d0db7dc40e5d45ce42d9c106067e6a66e184d967cfecfab17c3bcb5ef": "Mini Shai-Hulud tensorlake setup.mjs loader",
+	"b50a00900399ba99fb6ce1fc151519cb99d44320ef2a631f2237e1aea0ad6fec": "Mini Shai-Hulud tensorlake Math_Symbol.js payload",
+	"03aa53f01b5b0fc4899c44041da90d7c5aa29fd90e4d99a5b70270f672ee43e1": "Mini Shai-Hulud tensorlake earlier Math_Symbol.js payload",
 }
 
-// MaliciousSHA1 maps known malicious SHA1 hashes to their descriptions (Shai-Hulud 2.0).
+// MaliciousSHA1 maps known malicious SHA1 hashes to their descriptions.
 var MaliciousSHA1 = map[string]string{
 	"d1829b4708126dcc7bea7437c04d1f10eacd4a16": "setup_bun.js (Shai-Hulud 2.0)",
 	"d60ec97eea19fffb4809bc35b91033b52490ca11": "bun_environment.js (Shai-Hulud 2.0)",
 	"3d7570d14d34b0ba137d502f042b27b0f37a59fa": "bun_environment.js variant (Shai-Hulud 2.0)",
+	"843a898ab72793568d77c53ff9282e6ce7c66aea": "Mini Shai-Hulud tensorlake 0.5.144 npm tarball",
 }
 
 // EnvAccessPatterns contains patterns that indicate environment variable access.
@@ -389,6 +439,13 @@ func IsSuspiciousFileName(name string) bool {
 
 // ContainsSuspiciousBranchPattern checks if a branch name contains suspicious patterns.
 func ContainsSuspiciousBranchPattern(branchName string) bool {
+	branch := branchName
+	if remoteBranch, ok := strings.CutPrefix(branch, "remotes/"); ok {
+		_, branch, _ = strings.Cut(remoteBranch, "/")
+	}
+	if slices.Contains(MaliciousBranchNames, branch) {
+		return true
+	}
 	for _, pattern := range SuspiciousBranchPatterns {
 		if containsIgnoreCase(branchName, pattern) {
 			return true
@@ -415,6 +472,19 @@ func ContainsSuspiciousWorkflowPattern(content string) (string, bool) {
 		}
 	}
 	return "", false
+}
+
+// IsOpenAPISecretDumpWorkflow matches the combined workflow indicators reported by Socket.
+func IsOpenAPISecretDumpWorkflow(content string) bool {
+	if !strings.Contains(content, "actions/upload-artifact@") {
+		return false
+	}
+	for _, pattern := range openAPISecretDumpPatterns {
+		if !pattern.MatchString(content) {
+			return false
+		}
+	}
+	return true
 }
 
 // ContainsSuspiciousHookPattern checks if a hook script contains suspicious patterns.
