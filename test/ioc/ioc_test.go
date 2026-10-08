@@ -104,7 +104,22 @@ func TestIsMaliciousFileName(t *testing.T) {
 		{"package-updated.tgz", "package-updated.tgz", true},
 		{"openapi loader", "3FWCvzduYZg.js", true},
 		{"openapi prerelease script", "is_it_this_simple.js", true},
+		{"openapi monitor script", "sysvinit-detect-fash.sh", true},
+		{"openapi monitor service", "sysvinit-detect-fash.service", true},
+		{"openapi LaunchAgent", "com.user.sysvinit-detect-fash.plist", true},
+		{"generic prerelease script", "nu.js", false},
+		{"generic monitor data", "fox", false},
+		{"generic service executable", "runit", false},
+		{"generic AI entrypoint", "ai_init.js", false},
+		{"generic settings payload name", "index.js", false},
 		{"generic binding.gyp is not a file IOC", "binding.gyp", false},
+		{"tensorlake payload", "Math_Symbol.js", true},
+		{"token monitor script", "gh-token-monitor.sh", true},
+		{"token monitor service", "gh-token-monitor.service", true},
+		{"tensorlake lock", "tmp.ts018051808.lock", true},
+		{"generic setup loader", "setup.mjs", false},
+		{"generic Windows monitor", "monitor.ps1", false},
+		{"generic runtime", "runtime.cjs", false},
 		{"normal.js", "normal.js", false},
 		{"index.js", "index.js", false},
 		{"empty", "", false},
@@ -126,6 +141,8 @@ func TestIsMaliciousFilePath(t *testing.T) {
 		want bool
 	}{
 		{"known victim package lock", "/tmp/tmp.987654321.lock", true},
+		{"openapi command marker", "/var/tmp/.shit", true},
+		{"command marker outside reported path", "/tmp/.shit", false},
 		{"basename only is not path match", "tmp.987654321.lock", false},
 		{"normal path", "/tmp/normal.lock", false},
 		{"empty", "", false},
@@ -154,7 +171,11 @@ func TestIsSuspiciousFileName(t *testing.T) {
 		{"shai-hulud.js", "shai-hulud.js", true},
 		{"tanstack_runner.js", "tanstack_runner.js", true},
 		{"openapi loader", "3FWCvzduYZg.js", true},
+		{"openapi prerelease hash candidate", "is_it_this_simple.js", true},
 		{"binding.gyp hash candidate", "binding.gyp", true},
+		{"tensorlake loader", "setup.mjs", true},
+		{"tensorlake payload", "Math_Symbol.js", true},
+		{"tensorlake tarball", "tensorlake-0.5.144.tgz", true},
 		{"normal.js", "normal.js", false},
 		{"app.js", "app.js", false},
 	}
@@ -181,6 +202,10 @@ func TestContainsSuspiciousBranchPattern(t *testing.T) {
 		{"case insensitive", "SHAI-HULUD", true},
 		{"normal branch", "main", false},
 		{"feature branch", "feature/add-login", false},
+		{"tensorlake branch", "dependabot/github_actions/format/setup-formatter", true},
+		{"tensorlake remote branch", "remotes/origin/dependabot/github_actions/format/setup-formatter", true},
+		{"similar formatter branch", "dependabot/github_actions/format/setup-formatter-v2", false},
+		{"branch with prefixed indicator", "feature/dependabot/github_actions/format/setup-formatter", false},
 		{"empty", "", false},
 	}
 
@@ -586,7 +611,7 @@ func TestNewMaliciousSHA256Hashes(t *testing.T) {
 		"2ec78d556d696e208927cc503d48e4b5eb56b31abc2870c2ed2e98d6be27fc96",
 		"d3246926b20a8d021ed7de0ac8e9eee1dda986088f84ba18f31cb2042a121f5d",
 		"59370c67b54a0ccaedd265e2356f04540b2fba1e1845300ef6de4d5437d99380",
-		"b49afb7dba64cd99b357ce7c652c823a3707f28e130bd5c6645851a7adc030d6",
+		"b49afb7dba04cd99b357ce7c652c823a3707f28e130bd5c6645851a7adc030d6",
 	}
 
 	for _, hash := range newHashes {

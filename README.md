@@ -192,7 +192,7 @@ The updater downloads packages only; it does not install them or replace the run
 **Full Mode**
 - Recursive scan of all `node_modules` directories
 - Complete npm cache analysis
-- Full hash scan of all JS/TS files
+- Full hash scan of JS/TS, MJS/CJS, and TGZ files
 - Deep `package.json` hook and dependency analysis, including partial npm ranges such as `^1.2`, `^1`, `~1.2`, and `~1`
 - Self-hosted runner detection
 - Environment variable exfiltration pattern detection
@@ -321,6 +321,25 @@ security_scan:
 
 - `@7nohe/openapi-react-query-codegen`: `0.0.0-365d4eb738d3146583431948d3ba6e27a32556be`, `0.0.0-ec7876d6c917dad516ba69bbfafc948b834bf0ab`, `0.5.4`, `0.5.5`, `1.6.3`, `1.6.4`, `2.2.1`, `2.2.2`, `3.0.3`, `3.0.4`
 
+### OpenAPI React Query Codegen compromise (August 2026)
+
+The [Socket report](https://socket.dev/blog/openapi-react-query-codegen-npm-compromise) provides the ten exact versions above, loader/build-trigger hashes, and persistence indicators.
+
+- Artifact checks cover `sysvinit-detect-fash` scripts, services, and the macOS LaunchAgent. Generic `fox`, `runit`, and `nu.js` names require the reported parent paths. Quick mode checks these paths relative to each scan root; full mode searches recursively.
+- The reported secret-dumping workflow produces a high-severity finding only when the review name, all-secrets expression, result path, and artifact-upload action appear together.
+- Lifecycle hooks referencing the known loader filenames produce warnings. Generic build manifests, AI configuration files, and legitimate infrastructure endpoints are not standalone malicious indicators.
+
+### Tensorlake compromise (October 2026)
+
+The [SafeDep report](https://safedep.io/tensorlake-npm-compromise-mini-shai-hulud/) identifies `tensorlake@0.5.144`. This exact version is embedded for offline detection in installed packages, manifests, and lockfiles; adjacent versions are not flagged by this indicator.
+
+- Three SHA-256 signatures cover the loader and both reported payload builds; a SHA-1 signature covers the npm tarball.
+- Quick mode hashes `setup.mjs`, `Math_Symbol.js`, and `tensorlake-0.5.144.tgz` within its existing traversal limits. Full mode also checks renamed MJS/CJS and TGZ files without unpacking archives.
+- Artifact checks include `Math_Symbol.js`, `tmp.ts018051808.lock`, and `gh-token-monitor` scripts/services. Quick mode checks the default Linux and Windows persistence paths relative to each scan root; full mode searches recursively.
+- Git checks match `dependabot/github_actions/format/setup-formatter` exactly, including remote-tracking branches.
+
+Generic `setup.mjs`, `runtime.cjs`, and `monitor.ps1` filenames are not standalone malicious indicators. These checks detect static artifacts; they do not inspect running processes or network traffic.
+
 ### Malicious Files
 - `shai-hulud.js`, `shai_hulud.js`
 - `setup_bun.js`, `bun_environment.js`
@@ -354,7 +373,7 @@ security_scan:
 - `2ec78d556d696e208927cc503d48e4b5eb56b31abc2870c2ed2e98d6be27fc96` - Mini Shai-Hulud TanStack/router payload
 - `d3246926b20a8d021ed7de0ac8e9eee1dda986088f84ba18f31cb2042a121f5d` - openapi-react-query-codegen `binding.gyp`
 - `59370c67b54a0ccaedd265e2356f04540b2fba1e1845300ef6de4d5437d99380` - openapi-react-query-codegen `3FWCvzduYZg.js`
-- `b49afb7dba64cd99b357ce7c652c823a3707f28e130bd5c6645851a7adc030d6` - openapi-react-query-codegen `3FWCvzduYZg.js` variant
+- `b49afb7dba04cd99b357ce7c652c823a3707f28e130bd5c6645851a7adc030d6` - openapi-react-query-codegen `3FWCvzduYZg.js` variant
 
 **SHA1 (Shai-Hulud 2.0):**
 - `d1829b4708126dcc7bea7437c04d1f10eacd4a16` - setup_bun.js

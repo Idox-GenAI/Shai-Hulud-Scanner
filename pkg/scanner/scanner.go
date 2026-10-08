@@ -785,6 +785,12 @@ func (s *Scanner) scanMaliciousFiles() {
 		}
 
 		if s.config.ScanMode == ScanModeQuick {
+			for _, relativePath := range ioc.MaliciousRelativePaths {
+				fpath := filepath.Join(root, filepath.FromSlash(relativePath))
+				if info, err := os.Stat(fpath); err == nil && info.Mode().IsRegular() {
+					s.addFinding(report.FindingFileArtifact, relativePath, fpath)
+				}
+			}
 			for _, fname := range ioc.MaliciousFileNames {
 				fpath := filepath.Join(root, fname)
 				if _, err := os.Stat(fpath); err == nil {
@@ -811,6 +817,13 @@ func (s *Scanner) scanMaliciousFiles() {
 				if malNames[d.Name()] {
 					s.addFinding(report.FindingFileArtifact, d.Name(), path)
 					s.log("    [!] FOUND: %s at %s", d.Name(), filepath.Dir(path))
+				} else {
+					for _, relativePath := range ioc.MaliciousRelativePaths {
+						if strings.HasSuffix(filepath.ToSlash(path), "/"+relativePath) {
+							s.addFinding(report.FindingFileArtifact, relativePath, path)
+							break
+						}
+					}
 				}
 				return nil
 			})
@@ -950,7 +963,9 @@ func (s *Scanner) scanWorkflows() {
 					if err != nil {
 						continue
 					}
-					if pattern, found := ioc.ContainsSuspiciousWorkflowPattern(string(content)); found {
+					if ioc.IsOpenAPISecretDumpWorkflow(string(content)) {
+						s.addFinding(report.FindingWorkflowPattern, "OpenAPI compromise secret-dump workflow", wfPath)
+					} else if pattern, found := ioc.ContainsSuspiciousWorkflowPattern(string(content)); found {
 						s.addFinding(report.FindingWorkflowContent, "Workflow contains: "+pattern, wfPath)
 					}
 				}
@@ -1513,7 +1528,8 @@ func (s *Scanner) scanHashes() {
 				if strings.HasSuffix(name, ".d.ts") {
 					return nil
 				}
-				if suspiciousNames[name] || strings.HasSuffix(name, ".js") || strings.HasSuffix(name, ".ts") {
+				ext := filepath.Ext(name)
+				if suspiciousNames[name] || ext == ".js" || ext == ".ts" || ext == ".mjs" || ext == ".cjs" || ext == ".tgz" {
 					hashJobs <- path
 				}
 				return nil

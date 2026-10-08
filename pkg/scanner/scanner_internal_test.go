@@ -96,6 +96,12 @@ func TestLoadCompromisedPackagesIncludesEmbeddedCustomFeedOffline(t *testing.T) 
 		"0.0.0-365d4eb738d3146583431948d3ba6e27a32556be",
 		"0.0.0-ec7876d6c917dad516ba69bbfafc948b834bf0ab",
 		"0.5.4",
+		"0.5.5",
+		"1.6.3",
+		"1.6.4",
+		"2.2.1",
+		"2.2.2",
+		"3.0.3",
 		"3.0.4",
 	} {
 		if !s.isCompromisedPackageVersion(packageName, version) {
